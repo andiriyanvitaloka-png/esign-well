@@ -968,15 +968,16 @@ function App() {
                                         border: '1.5px solid #16a34a', 
                                         backgroundColor: 'rgba(220, 252, 231, 0.95)', 
                                         color: '#15803d', 
-                                        padding: '8px', 
+                                        padding: boxHeight < 40 ? '2px 6px' : '6px 8px', // Padding otomatis mengecil jika kotak tipis
                                         borderRadius: '4px', 
                                         display: 'flex', 
                                         flexDirection: 'column', 
-                                        justifyContent: 'flex-start', 
+                                        justifyContent: 'center', // Agar teks ke tengah vertikal
                                         alignItems: 'flex-start', 
                                         textAlign: 'left',
                                         boxSizing: 'border-box', 
-                                        overflow: 'hidden' 
+                                        overflow: 'hidden',
+                                        position: 'relative'
                                       }}>
                                         {f.field_type === 'signature' ? (
                                           <div style={{ 
@@ -993,17 +994,21 @@ function App() {
                                           </div>
                                         ) : (
                                           <div style={{ 
-                                            fontSize: '12pt', 
+                                            fontSize: boxHeight < 40 ? '10pt' : '12pt', // Ukuran font otomatis mengecil dikit jika tipis
                                             fontWeight: 'normal',
                                             wordBreak: 'break-word',
                                             whiteSpace: 'pre-wrap',
-                                            width: '100%'
+                                            width: '100%',
+                                            lineHeight: '1.1'
                                           }}>
                                             {currentTextValue}
                                           </div>
                                         )}
 
-                                        <div style={{ fontSize: '8px', color: '#166534', fontWeight: 'bold', marginTop: 'auto' }}>✓ Signed</div>
+                                        {/* Sembunyikan tulisan ✓ Signed jika kotak terlalu tipis agar tidak makan tempat */}
+                                        {boxHeight >= 40 && (
+                                          <div style={{ fontSize: '8px', color: '#166534', fontWeight: 'bold', position: 'absolute', bottom: '4px', right: '6px' }}>✓ Signed</div>
+                                        )}
                                       </div>
                                     ) : !isCancelled && isMyField && activeSigner?.status === 'Mailed' ? (
                                       
