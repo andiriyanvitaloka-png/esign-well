@@ -548,7 +548,7 @@ function App() {
       
       {/* SIDEBAR NAVIGATION */}
       {!isSignerOnlyView && (
-        <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
+        <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           
           {/* HEADER SIDEBAR DENGAN LOGO */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
@@ -556,7 +556,7 @@ function App() {
               src="/logo.png" 
               alt="Logo" 
               style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }} 
-              onError={(e) => e.target.style.display = 'none'} // Sembunyikan gambar jika file logo.png belum ada
+              onError={(e) => e.target.style.display = 'none'} 
             />
             <h2 style={{ fontSize: '24px', margin: 0, fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.5px' }}>
               E-Sign Well
@@ -574,26 +574,26 @@ function App() {
         </div>
       )}
 
-      <div className="main-content" style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
+      <div className="main-content" style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', minWidth: 0 }}>
         
         {/* TABEL DASHBOARD "ALL DOCUMENTS" */}
         {!isSignerOnlyView && mode === 'dashboard' && (
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', border: '1px solid #e5e7eb' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '24px', color: '#111827', fontWeight: '700' }}>Semua Dokumen</h2>
                 <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>Kelola permintaan tanda tangan Anda di sini.</p>
               </div>
               <button 
                 onClick={() => setMode('upload')}
-                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)', transition: 'all 0.2s' }}
+                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
               >
                 + Upload New Document
               </button>
             </div>
 
             {/* TAB FILTER OPTIONS */}
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', overflowX: 'auto' }}>
               {['All', 'In Progress', 'Completed', 'Cancelled'].map(f => (
                 <div
                   key={f}
@@ -606,7 +606,8 @@ function App() {
                     color: filter === f ? '#3b82f6' : '#64748b',
                     borderBottom: filter === f ? '2px solid #3b82f6' : '2px solid transparent',
                     marginBottom: '-1px',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {f === 'All' ? 'Semua' : f}
@@ -618,11 +619,11 @@ function App() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', color: '#475569', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>
-                    <th style={{ padding: '16px 20px', borderRadius: '8px 0 0 8px', fontWeight: '600' }}>Document Name</th>
-                    <th style={{ padding: '16px 20px', fontWeight: '600' }}>Recipient Emails</th>
-                    <th style={{ padding: '16px 20px', fontWeight: '600' }}>Date Created</th>
-                    <th style={{ padding: '16px 20px', fontWeight: '600' }}>Status</th>
-                    <th style={{ padding: '16px 20px', textAlign: 'center', borderRadius: '0 8px 8px 0', fontWeight: '600' }}>Action</th>
+                    <th style={{ padding: '16px', borderRadius: '8px 0 0 8px', fontWeight: '600', minWidth: '150px' }}>Document Name</th>
+                    <th style={{ padding: '16px', fontWeight: '600', minWidth: '250px' }}>Recipient Emails</th>
+                    <th style={{ padding: '16px', fontWeight: '600', minWidth: '120px' }}>Date Created</th>
+                    <th style={{ padding: '16px', fontWeight: '600', minWidth: '120px' }}>Status</th>
+                    <th style={{ padding: '16px', textAlign: 'center', borderRadius: '0 8px 8px 0', fontWeight: '600', width: '100px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -632,8 +633,10 @@ function App() {
 
                     return (
                       <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
-                        <td style={{ padding: '20px', fontWeight: '600', color: '#1e293b' }}>{d.filename}</td>
-                        <td style={{ padding: '20px', lineHeight: '1.5' }}>
+                        <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', wordBreak: 'break-word' }}>{d.filename}</td>
+                        
+                        {/* UPDATE KOLOM RECIPIENT EMAILS AGAR WORD-BREAK */}
+                        <td style={{ padding: '16px', lineHeight: '1.5' }}>
                           {d.recipients && d.recipients.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               {d.recipients.sort((a, b) => a.signing_order - b.signing_order).map(r => {
@@ -656,7 +659,7 @@ function App() {
                                 }
 
                                 return (
-                                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                                  <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px' }}>
                                     <span style={{ 
                                       backgroundColor: badgeBg, 
                                       padding: '2px 6px', 
@@ -667,11 +670,18 @@ function App() {
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       minWidth: '24px',
-                                      justifyContent: 'center'
+                                      justifyContent: 'center',
+                                      flexShrink: 0
                                     }} title={r.status}>
                                       {statusIcon}
                                     </span>
-                                    <span style={{ color: r.status === 'Mailed' ? '#1e293b' : '#64748b', fontWeight: r.status === 'Mailed' ? '600' : '400', textDecoration: r.status === 'Cancelled' ? 'line-through' : 'none' }}>
+                                    <span style={{ 
+                                      color: r.status === 'Mailed' ? '#1e293b' : '#64748b', 
+                                      fontWeight: r.status === 'Mailed' ? '600' : '400', 
+                                      textDecoration: r.status === 'Cancelled' ? 'line-through' : 'none',
+                                      wordBreak: 'break-word', // <-- PENTING: Memastikan email panjang turun baris
+                                      overflowWrap: 'anywhere'
+                                    }}>
                                       {r.email}
                                     </span>
                                   </div>
@@ -683,10 +693,10 @@ function App() {
                           )}
                         </td>
 
-                        <td style={{ padding: '20px', color: '#64748b' }}>
+                        <td style={{ padding: '16px', color: '#64748b', whiteSpace: 'nowrap' }}>
                           {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
-                        <td style={{ padding: '20px' }}>
+                        <td style={{ padding: '16px' }}>
                           {isDocCancelled ? (
                             <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '4px 10px', borderRadius: '9999px', fontWeight: '700', fontSize: '10px', border: '1px solid #fecaca', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               🚫 CANCELLED
@@ -701,17 +711,18 @@ function App() {
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: '20px', textAlign: 'center' }}>
+                        <td style={{ padding: '16px', textAlign: 'center' }}>
                           <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} onMouseLeave={() => setActiveDropdown(null)}>
                             <button 
                               onClick={() => setActiveDropdown(activeDropdown === d.id ? null : d.id)}
-                              style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                              style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap' }}
                             >
                               Aksi ▼
                             </button>
 
+                            {/* UPDATE: POSISI DROPDOWN DIRATAKAN KE KANAN AGAR TIDAK MELUBER KELUAR TABEL */}
                             {activeDropdown === d.id && (
-                              <div style={{ position: 'absolute', top: '100%', right: '50%', transform: 'translateX(50%)', marginTop: '4px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '150px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                              <div style={{ position: 'absolute', top: '100%', right: '0', marginTop: '4px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '150px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                 <button 
                                   onClick={async () => { await loadDocumentData(d.id); setMode('signing'); setActiveDropdown(null) }}
                                   style={dropdownItemStyle}
@@ -787,7 +798,7 @@ function App() {
                 
                 {signerList.map((signer, i) => (
                   <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'center' }}>
-                    <div style={{ backgroundColor: '#e0f2fe', color: '#0369a1', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '14px' }}>
+                    <div style={{ backgroundColor: '#e0f2fe', color: '#0369a1', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '14px', flexShrink: 0 }}>
                       {i + 1}
                     </div>
                     <input 
@@ -796,7 +807,7 @@ function App() {
                       value={signer.name}
                       onChange={(e) => handleSignerChange(i, 'name', e.target.value)}
                       required
-                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', minWidth: '100px' }}
                     />
                     <input 
                       type="email" 
@@ -804,13 +815,13 @@ function App() {
                       value={signer.email}
                       onChange={(e) => handleSignerChange(i, 'email', e.target.value)}
                       required
-                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', minWidth: '100px' }}
                     />
                     {signerList.length > 1 && (
                       <button 
                         type="button" 
                         onClick={() => removeSignerRow(i)}
-                        style={{ backgroundColor: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '20px', padding: '4px' }}
+                        style={{ backgroundColor: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '20px', padding: '4px', flexShrink: 0 }}
                       >
                         ✕
                       </button>
@@ -841,7 +852,7 @@ function App() {
         {/* AREA KONTROL: PLOTTING & SIGNING */}
         {mode !== 'upload' && mode !== 'dashboard' && doc && (
           <>
-            <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>{doc.filename}</h2>
                 <p style={{ margin: '6px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
@@ -850,7 +861,7 @@ function App() {
               </div>
 
               {mode === 'signing' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div 
                       style={{ 
@@ -915,11 +926,11 @@ function App() {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '24px' }}>
+            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
               
               {/* KONTROL PANEL */}
               {mode === 'plotting' && (
-                <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
+                <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content', flexShrink: 0 }}>
                   <h3 style={{ margin: '0 0 20px 0', color: '#111827', fontSize: '18px' }}>Atur Ukuran & Posisi</h3>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -976,7 +987,7 @@ function App() {
               )}
 
               {!isSignerOnlyView && mode === 'signing' && (
-                <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
+                <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content', flexShrink: 0 }}>
                   <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px' }}>Mode Simulasi Signer</h3>
                   <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0' }}>Lihat dokumen dari sudut pandang Signer tertentu.</p>
                   
@@ -998,7 +1009,7 @@ function App() {
               )}
 
               {/* AREA DOKUMEN PDF */}
-              <div style={{ flex: 1, backgroundColor: '#cbd5e1', padding: '32px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', overflowY: 'auto', border: '1px solid #94a3b8' }}>
+              <div style={{ flex: 1, backgroundColor: '#cbd5e1', padding: '32px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', overflowY: 'auto', border: '1px solid #94a3b8', minWidth: '100%' }}>
                 <Document file={doc.file_url} onLoadSuccess={({ numPages }) => setNumPages(numPages)}>
                   {Array.from(new Array(numPages || 0), (_, index) => {
                     const pageNo = index + 1
