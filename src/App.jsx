@@ -29,8 +29,10 @@ function App() {
   // Flag apakah pengguna membuka aplikasi via link email khusus
   const [isSignerOnlyView, setIsSignerOnlyView] = useState(false)
 
-  // Mode: 'dashboard', 'upload', 'plotting', 'signing'
+  // Mode & UI States
   const [mode, setMode] = useState('dashboard')
+  const [filter, setFilter] = useState('All') // Filter untuk Dashboard (All, In Progress, Completed, Cancelled)
+  const [activeDropdown, setActiveDropdown] = useState(null) // State untuk Dropdown Action
 
   // State Form Upload Baru
   const [file, setFile] = useState(null)
@@ -461,7 +463,7 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL (DIPERBARUI PERHITUNGAN X & Y) ---
+  // --- DOWNLOAD PDF FINAL ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
@@ -478,7 +480,6 @@ function App() {
 
         const { width: pdfWidth, height: pdfHeight } = pdfPage.getSize()
 
-        // Skala referensi web UI = 800px width
         const scaleRatio = pdfWidth / 800;
 
         const xPos = (f.x_position / 100) * pdfWidth
@@ -494,7 +495,6 @@ function App() {
         
         const textToDraw = fieldInputs[f.id] || ''
 
-        // Kalkulasi Y Center yang akurat berdasarkan baris teks
         const textLines = textToDraw.split('\n').length
         const totalTextHeight = textLines * (fontSize * 1.2)
         const yPosCenter = yTop - (boxHeightPdf / 2) + (totalTextHeight / 2) - fontSize
@@ -527,6 +527,17 @@ function App() {
     }
   }
 
+  // LOGIKA FILTER DOKUMEN DI DASHBOARD
+  const filteredDocuments = allDocuments.filter((d) => {
+    const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
+    const isDocCancelled = d.status === 'CANCELLED'
+
+    if (filter === 'Completed') return isAllSigned
+    if (filter === 'Cancelled') return isDocCancelled
+    if (filter === 'In Progress') return !isAllSigned && !isDocCancelled
+    return true // 'All'
+  })
+
   const completedCount = recipients.filter(r => r.status === 'Signed').length
   const progressPercent = recipients.length > 0 ? Math.round((completedCount / recipients.length) * 100) : 0
   const activeBox = activeFieldIndex !== null ? fields[activeFieldIndex] : null
@@ -535,7 +546,7 @@ function App() {
   return (
     <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* SIDEBAR NAVIGATION - ELEGAN */}
+      {/* SIDEBAR NAVIGATION - HANYA ALL DOCS & UPLOAD BARU */}
       {!isSignerOnlyView && (
         <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ fontSize: '26px', marginBottom: '40px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.5px' }}>
@@ -548,22 +559,16 @@ function App() {
             <li className={mode === 'upload' ? 'active' : ''} onClick={() => setMode('upload')} style={menuItemStyle(mode === 'upload')}>
               ➕ Upload Baru
             </li>
-            <li className={mode === 'plotting' ? 'active' : ''} onClick={() => setMode('plotting')} style={menuItemStyle(mode === 'plotting')}>
-              📐 Plotting Fields
-            </li>
-            <li className={mode === 'signing' ? 'active' : ''} onClick={() => setMode('signing')} style={menuItemStyle(mode === 'signing')}>
-              ✍️ Signing Portal
-            </li>
           </ul>
         </div>
       )}
 
       <div className="main-content" style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         
-        {/* TABEL DASHBOARD "ALL DOCUMENTS" - ELEGAN */}
+        {/* TABEL DASHBOARD "ALL DOCUMENTS" DENGAN FILTER & DROPDOWN */}
         {!isSignerOnlyView && mode === 'dashboard' && (
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', border: '1px solid #e5e7eb' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '24px', color: '#111827', fontWeight: '700' }}>Semua Dokumen</h2>
                 <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>Kelola permintaan tanda tangan Anda di sini.</p>
@@ -574,6 +579,28 @@ function App() {
               >
                 + Upload New Document
               </button>
+            </div>
+
+            {/* TAB FILTER OPTIONS */}
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb' }}>
+              {['All', 'In Progress', 'Completed', 'Cancelled'].map(f => (
+                <div
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{
+                    padding: '10px 4px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    color: filter === f ? '#3b82f6' : '#64748b',
+                    borderBottom: filter === f ? '2px solid #3b82f6' : '2px solid transparent',
+                    marginBottom: '-1px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {f === 'All' ? 'Semua' : f}
+                </div>
+              ))}
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -588,7 +615,7 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {allDocuments.map((d) => {
+                  {filteredDocuments.map((d) => {
                     const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
                     const isDocCancelled = d.status === 'CANCELLED'
 
@@ -602,67 +629,77 @@ function App() {
                           {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                         <td style={{ padding: '20px' }}>
+                          {/* STATUS BADGE DIPERKECIL & NO WRAP */}
                           {isDocCancelled ? (
-                            <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '6px 12px', borderRadius: '9999px', fontWeight: '700', fontSize: '11px', border: '1px solid #fecaca' }}>
+                            <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '4px 10px', borderRadius: '9999px', fontWeight: '700', fontSize: '10px', border: '1px solid #fecaca', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               🚫 CANCELLED
                             </span>
                           ) : isAllSigned ? (
-                            <span style={{ backgroundColor: '#ecfdf5', color: '#065f46', padding: '6px 12px', borderRadius: '9999px', fontWeight: '700', fontSize: '11px', border: '1px solid #a7f3d0' }}>
+                            <span style={{ backgroundColor: '#ecfdf5', color: '#065f46', padding: '4px 10px', borderRadius: '9999px', fontWeight: '700', fontSize: '10px', border: '1px solid #a7f3d0', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               ✓ COMPLETED
                             </span>
                           ) : (
-                            <span style={{ backgroundColor: '#fffbeb', color: '#92400e', padding: '6px 12px', borderRadius: '9999px', fontWeight: '700', fontSize: '11px', border: '1px solid #fde68a' }}>
+                            <span style={{ backgroundColor: '#fffbeb', color: '#92400e', padding: '4px 10px', borderRadius: '9999px', fontWeight: '700', fontSize: '10px', border: '1px solid #fde68a', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               ⏳ IN PROGRESS
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '20px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          
+                          {/* ACTION BUTTON WITH DROPDOWN */}
+                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} onMouseLeave={() => setActiveDropdown(null)}>
                             <button 
-                              onClick={async () => {
-                                await loadDocumentData(d.id)
-                                setMode('signing')
-                              }}
-                              style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: 'all 0.2s' }}
+                              onClick={() => setActiveDropdown(activeDropdown === d.id ? null : d.id)}
+                              style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
                             >
-                              Buka Portal
+                              Aksi ▼
                             </button>
 
-                            {!isAllSigned && !isDocCancelled && (
-                              <>
+                            {activeDropdown === d.id && (
+                              <div style={{ position: 'absolute', top: '100%', right: '50%', transform: 'translateX(50%)', marginTop: '4px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '150px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                 <button 
-                                  onClick={() => handleSendReminder(d)}
-                                  style={{ backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
-                                  title="Kirim email pengingat ke Signer aktif"
+                                  onClick={async () => { await loadDocumentData(d.id); setMode('signing'); setActiveDropdown(null) }}
+                                  style={dropdownItemStyle}
                                 >
-                                  🔔 Reminder
+                                  Buka Portal
                                 </button>
+                                
+                                {!isAllSigned && !isDocCancelled && (
+                                  <>
+                                    <button 
+                                      onClick={() => { handleSendReminder(d); setActiveDropdown(null) }}
+                                      style={dropdownItemStyle}
+                                    >
+                                      🔔 Reminder
+                                    </button>
+                                    <button 
+                                      onClick={() => { handleCancelRequest(d.id); setActiveDropdown(null) }}
+                                      style={{...dropdownItemStyle, color: '#ea580c'}}
+                                    >
+                                      🚫 Cancel
+                                    </button>
+                                  </>
+                                )}
+                                
                                 <button 
-                                  onClick={() => handleCancelRequest(d.id)}
-                                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
-                                  title="Batalkan permintaan E-Sign"
+                                  onClick={() => { handleDeleteDocument(d.id, d.file_url); setActiveDropdown(null) }}
+                                  style={{...dropdownItemStyle, color: '#dc2626', borderTop: '1px solid #e2e8f0'}}
                                 >
-                                  🚫 Cancel
+                                  🗑️ Hapus
                                 </button>
-                              </>
+                              </div>
                             )}
-
-                            <button 
-                              onClick={() => handleDeleteDocument(d.id, d.file_url)}
-                              style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
-                            >
-                              Hapus
-                            </button>
                           </div>
+
                         </td>
                       </tr>
                     )
                   })}
 
-                  {allDocuments.length === 0 && (
+                  {filteredDocuments.length === 0 && (
                     <tr>
                       <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>
-                        Belum ada dokumen yang dikirim.
+                        Tidak ada dokumen ditemukan.
                       </td>
                     </tr>
                   )}
@@ -672,7 +709,7 @@ function App() {
           </div>
         )}
 
-        {/* MODE 0: FORM UPLOAD DOKUMEN BARU - ELEGAN */}
+        {/* MODE 0: FORM UPLOAD DOKUMEN BARU */}
         {!isSignerOnlyView && mode === 'upload' && (
           <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', maxWidth: '750px', margin: '0 auto', width: '100%' }}>
             <h2 style={{ fontSize: '24px', margin: '0 0 8px 0', color: '#111827' }}>Upload Dokumen & Atur Signer Baru</h2>
@@ -747,173 +784,167 @@ function App() {
           </div>
         )}
 
-        {/* TOP BAR HEADER */}
+        {/* AREA KONTROL: PLOTTING & SIGNING (Ditampilkan otomatis tanpa Menu Sidebar) */}
         {mode !== 'upload' && mode !== 'dashboard' && doc && (
-          <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>{doc.filename}</h2>
-              <p style={{ margin: '6px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
-                {isSignerOnlyView ? `Portal Penandatanganan untuk: ${activeSigner?.name}` : `Mode Aktif: ${mode === 'plotting' ? 'Pengaturan Posisi Kotak' : 'Portal Pengisian Dokumen'}`}
-              </p>
+          <>
+            <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>{doc.filename}</h2>
+                <p style={{ margin: '6px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                  {isSignerOnlyView ? `Portal Penandatanganan untuk: ${activeSigner?.name}` : `Mode Aktif: ${mode === 'plotting' ? 'Pengaturan Posisi Kotak' : 'Portal Pengisian Dokumen'}`}
+                </p>
+              </div>
+
+              {mode === 'signing' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div 
+                      style={{ 
+                        width: '48px', 
+                        height: '48px', 
+                        borderRadius: '50%', 
+                        background: `conic-gradient(${progressPercent === 100 ? '#10b981' : '#3b82f6'} ${progressPercent * 3.6}deg, #e2e8f0 0deg)`,
+                        padding: '4px',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold', 
+                        fontSize: '12px', 
+                        color: progressPercent === 100 ? '#10b981' : '#3b82f6'
+                      }}>
+                        {progressPercent}%
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151' }}>Progress Update</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{completedCount} dari {recipients.length} Selesai</div>
+                    </div>
+                  </div>
+
+                  {!isCancelled && activeSigner?.status === 'Mailed' && (
+                    <button 
+                      onClick={handleFinishSigning}
+                      disabled={isSubmitting}
+                      style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
+                    >
+                      {isSubmitting ? "Menyimpan..." : "✓ Selesaikan & Kirim"}
+                    </button>
+                  )}
+
+                  {progressPercent === 100 && (
+                    <button 
+                      onClick={handleDownloadFinalPdf}
+                      disabled={isDownloading}
+                      style={{ backgroundColor: '#0284c7', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(2, 132, 199, 0.3)' }}
+                    >
+                      {isDownloading ? "Mengolah PDF..." : "📥 Download Signed PDF"}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
-            {mode === 'signing' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div 
-                    style={{ 
-                      width: '48px', 
-                      height: '48px', 
-                      borderRadius: '50%', 
-                      background: `conic-gradient(${progressPercent === 100 ? '#10b981' : '#3b82f6'} ${progressPercent * 3.6}deg, #e2e8f0 0deg)`,
-                      padding: '4px',
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <div style={{
-                      width: '100%',
-                      height: '100%',
-                      backgroundColor: 'white',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 'bold', 
-                      fontSize: '12px', 
-                      color: progressPercent === 100 ? '#10b981' : '#3b82f6'
-                    }}>
-                      {progressPercent}%
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151' }}>Progress Update</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{completedCount} dari {recipients.length} Selesai</div>
-                  </div>
-                </div>
-
-                {!isCancelled && activeSigner?.status === 'Mailed' && (
-                  <button 
-                    onClick={handleFinishSigning}
-                    disabled={isSubmitting}
-                    style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
-                  >
-                    {isSubmitting ? "Menyimpan..." : "✓ Selesaikan & Kirim"}
-                  </button>
-                )}
-
-                {progressPercent === 100 && (
-                  <button 
-                    onClick={handleDownloadFinalPdf}
-                    disabled={isDownloading}
-                    style={{ backgroundColor: '#0284c7', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(2, 132, 199, 0.3)' }}
-                  >
-                    {isDownloading ? "Mengolah PDF..." : "📥 Download Signed PDF"}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* NOTIFIKASI JIKA DOKUMEN DIBATALKAN */}
-        {isCancelled && mode !== 'dashboard' && (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '16px 24px', borderRadius: '12px', fontWeight: '600', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🚫</span> Permintaan tanda tangan untuk dokumen ini telah dibatalkan oleh pengirim.
-          </div>
-        )}
-
-        {/* AREA DOKUMEN & KONTROL */}
-        {mode !== 'upload' && mode !== 'dashboard' && (
-          <div style={{ display: 'flex', gap: '24px' }}>
-            
-            {/* PANEL KONTROL PLOTTING */}
-            {mode === 'plotting' && (
-              <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#111827', fontSize: '18px' }}>Atur Ukuran & Posisi</h3>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#4b5563' }}>Pilih Target Signer:</label>
-                    <select 
-                      value={selectedRecipientId} 
-                      onChange={(e) => setSelectedRecipientId(e.target.value)}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb' }}
-                    >
-                      {recipients.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          Signer {r.signing_order}: {r.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#4b5563' }}>Pilih Tipe Kotak:</label>
-                    <select 
-                      value={fieldType} 
-                      onChange={(e) => setFieldType(e.target.value)}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb' }}
-                    >
-                      <option value="signature">✍️ Tanda Tangan</option>
-                      <option value="text">📝 Teks Kesimpulan (12pt)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {activeBox && (
-                  <div style={{ marginTop: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#334155' }}>Sesuaikan Ukuran Kotak Aktif</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      <button onClick={() => updateActiveField('width', -20)} style={btnStyle}>Lebar -</button>
-                      <button onClick={() => updateActiveField('width', 20)} style={btnStyle}>Lebar +</button>
-                      <button onClick={() => updateActiveField('height', -10)} style={btnStyle}>Tinggi -</button>
-                      <button onClick={() => updateActiveField('height', 10)} style={btnStyle}>Tinggi +</button>
-                    </div>
-                  </div>
-                )}
-
-                <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
-
-                <button 
-                  onClick={handleSaveFields}
-                  disabled={isSaving}
-                  style={{ width: '100%', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
-                >
-                  {isSaving ? "Menyimpan..." : "Simpan Posisi & Ukuran"}
-                </button>
+            {isCancelled && (
+              <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '16px 24px', borderRadius: '12px', fontWeight: '600', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🚫</span> Permintaan tanda tangan untuk dokumen ini telah dibatalkan oleh pengirim.
               </div>
             )}
 
-            {/* SIMULATOR SIGNER */}
-            {!isSignerOnlyView && mode === 'signing' && (
-              <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
-                <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px' }}>Mode Simulasi Signer</h3>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0' }}>Lihat dokumen dari sudut pandang Signer tertentu.</p>
-                
-                <select 
-                  value={activeSigner?.id || ''} 
-                  onChange={(e) => {
-                    const selected = recipients.find(r => r.id === e.target.value)
-                    setActiveSigner(selected)
-                  }}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '600', color: '#1e293b', outline: 'none' }}
-                >
-                  {recipients.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      Signer {r.signing_order}: {r.name} ({r.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* AREA DOKUMEN PDF */}
-            <div style={{ flex: 1, backgroundColor: '#cbd5e1', padding: '32px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', overflowY: 'auto', border: '1px solid #94a3b8' }}>
+            <div style={{ display: 'flex', gap: '24px' }}>
               
-              {doc && (
+              {/* KONTROL PANEL */}
+              {mode === 'plotting' && (
+                <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
+                  <h3 style={{ margin: '0 0 20px 0', color: '#111827', fontSize: '18px' }}>Atur Ukuran & Posisi</h3>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#4b5563' }}>Pilih Target Signer:</label>
+                      <select 
+                        value={selectedRecipientId} 
+                        onChange={(e) => setSelectedRecipientId(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb' }}
+                      >
+                        {recipients.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            Signer {r.signing_order}: {r.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#4b5563' }}>Pilih Tipe Kotak:</label>
+                      <select 
+                        value={fieldType} 
+                        onChange={(e) => setFieldType(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb' }}
+                      >
+                        <option value="signature">✍️ Tanda Tangan</option>
+                        <option value="text">📝 Teks Kesimpulan (12pt)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {activeBox && (
+                    <div style={{ marginTop: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#334155' }}>Sesuaikan Ukuran Kotak Aktif</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <button onClick={() => updateActiveField('width', -20)} style={btnStyle}>Lebar -</button>
+                        <button onClick={() => updateActiveField('width', 20)} style={btnStyle}>Lebar +</button>
+                        <button onClick={() => updateActiveField('height', -10)} style={btnStyle}>Tinggi -</button>
+                        <button onClick={() => updateActiveField('height', 10)} style={btnStyle}>Tinggi +</button>
+                      </div>
+                    </div>
+                  )}
+
+                  <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
+
+                  <button 
+                    onClick={handleSaveFields}
+                    disabled={isSaving}
+                    style={{ width: '100%', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
+                  >
+                    {isSaving ? "Menyimpan..." : "Simpan Posisi & Ukuran"}
+                  </button>
+                </div>
+              )}
+
+              {!isSignerOnlyView && mode === 'signing' && (
+                <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px' }}>Mode Simulasi Signer</h3>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0' }}>Lihat dokumen dari sudut pandang Signer tertentu.</p>
+                  
+                  <select 
+                    value={activeSigner?.id || ''} 
+                    onChange={(e) => {
+                      const selected = recipients.find(r => r.id === e.target.value)
+                      setActiveSigner(selected)
+                    }}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '600', color: '#1e293b', outline: 'none' }}
+                  >
+                    {recipients.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        Signer {r.signing_order}: {r.name} ({r.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* AREA DOKUMEN PDF */}
+              <div style={{ flex: 1, backgroundColor: '#cbd5e1', padding: '32px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', overflowY: 'auto', border: '1px solid #94a3b8' }}>
                 <Document file={doc.file_url} onLoadSuccess={({ numPages }) => setNumPages(numPages)}>
                   {Array.from(new Array(numPages || 0), (_, index) => {
                     const pageNo = index + 1
@@ -985,7 +1016,6 @@ function App() {
                                     <div style={{ fontSize: '10px', opacity: 0.9 }}>Signer {f.signing_order}: {f.recipient_email}</div>
                                   </div>
                                 ) : (
-                                  
                                   <div style={{ width: '100%', height: '100%' }}>
                                     {isSigned ? (
                                       <div style={{ 
@@ -1036,7 +1066,6 @@ function App() {
                                         )}
                                       </div>
                                     ) : !isCancelled && isMyField && activeSigner?.status === 'Mailed' ? (
-                                      
                                       <div style={{ width: '100%', height: '100%' }}>
                                         {f.field_type === 'text' ? (
                                           <textarea 
@@ -1084,32 +1113,25 @@ function App() {
                                           />
                                         )}
                                       </div>
-
                                     ) : (
-
                                       <div style={{ width: '100%', height: '100%', border: '1.5px dashed #cbd5e1', backgroundColor: 'rgba(241, 245, 249, 0.8)', color: '#64748b', padding: '4px', borderRadius: '6px', fontSize: '11px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxSizing: 'border-box', cursor: 'not-allowed' }}>
                                         <span style={{ fontWeight: '600' }}>🔒 Kolom {targetRecipient?.name}</span>
                                         <span style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>Signer {f.signing_order}</span>
                                       </div>
-
                                     )}
                                   </div>
                                 )}
-
                               </div>
                             )
                           })}
-
                         </div>
                       </div>
                     )
                   })}
                 </Document>
-              )}
-
+              </div>
             </div>
-
-          </div>
+          </>
         )}
 
       </div>
@@ -1129,6 +1151,20 @@ const menuItemStyle = (isActive) => ({
   alignItems: 'center',
   gap: '10px'
 })
+
+const dropdownItemStyle = {
+  padding: '10px 14px',
+  backgroundColor: 'white',
+  border: 'none',
+  borderBottom: '1px solid #f1f5f9',
+  cursor: 'pointer',
+  textAlign: 'left',
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#334155',
+  width: '100%',
+  display: 'block'
+}
 
 const btnStyle = {
   backgroundColor: '#f1f5f9',
