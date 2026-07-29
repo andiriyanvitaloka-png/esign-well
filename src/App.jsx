@@ -31,8 +31,8 @@ function App() {
 
   // Mode & UI States
   const [mode, setMode] = useState('dashboard')
-  const [filter, setFilter] = useState('All') // Filter untuk Dashboard (All, In Progress, Completed, Cancelled)
-  const [activeDropdown, setActiveDropdown] = useState(null) // State untuk Dropdown Action
+  const [filter, setFilter] = useState('All') // Filter untuk Dashboard
+  const [activeDropdown, setActiveDropdown] = useState(null) // State Dropdown
 
   // State Form Upload Baru
   const [file, setFile] = useState(null)
@@ -549,9 +549,20 @@ function App() {
       {/* SIDEBAR NAVIGATION */}
       {!isSignerOnlyView && (
         <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '26px', marginBottom: '40px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.5px' }}>
-            E-Sign Well
-          </h2>
+          
+          {/* HEADER SIDEBAR DENGAN LOGO */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }} 
+              onError={(e) => e.target.style.display = 'none'} // Sembunyikan gambar jika file logo.png belum ada
+            />
+            <h2 style={{ fontSize: '24px', margin: 0, fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.5px' }}>
+              E-Sign Well
+            </h2>
+          </div>
+
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <li className={mode === 'dashboard' ? 'active' : ''} onClick={() => setMode('dashboard')} style={menuItemStyle(mode === 'dashboard')}>
               📁 All Documents
@@ -622,8 +633,6 @@ function App() {
                     return (
                       <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
                         <td style={{ padding: '20px', fontWeight: '600', color: '#1e293b' }}>{d.filename}</td>
-                        
-                        {/* UPDATE KOLOM RECIPIENT EMAILS DENGAN STATUS INDIKATOR */}
                         <td style={{ padding: '20px', lineHeight: '1.5' }}>
                           {d.recipients && d.recipients.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
