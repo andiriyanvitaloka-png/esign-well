@@ -61,6 +61,36 @@ function App() {
     }
   }
 
+  // FUNGSI UNTUK MENGHAPUS DOKUMEN
+  const handleDeleteDocument = async (docId, fileUrl) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
+
+    try {
+      // 1. Hapus record dokumen dari database Supabase (recipients & fields akan ikut terhapus jika di-cascade, atau dihapus manual)
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', docId)
+
+      if (dbError) throw dbError
+
+      // 2. Jika ada URL file storage, hapus filenya dari Supabase Storage
+      if (fileUrl) {
+        const urlParts = fileUrl.split('/')
+        const fileName = urlParts[urlParts.length - 1]
+        if (fileName) {
+          await supabase.storage.from('pdf_documents').remove([`documents/${fileName}`])
+        }
+      }
+
+      alert("Dokumen berhasil dihapus! 🗑️")
+      await fetchAllDocumentsList()
+    } catch (error) {
+      console.error("Gagal menghapus dokumen:", error)
+      alert("Gagal menghapus dokumen: " + error.message)
+    }
+  }
+
   async function loadDocumentData(targetDocId = null) {
     let query = supabase.from('documents').select('*')
     
@@ -129,10 +159,10 @@ function App() {
     }
 
     emailjs.send(
-      'service_zbpxi9e',   // <--- Masukkan Service ID EmailJS kamu
-      'template_41gdynq',  // <--- Masukkan Template ID EmailJS kamu
+      'service_zbpxi9e',   // <--- Service ID EmailJS
+      'template_41gdynq',  // <--- Template ID EmailJS
       templateParams,
-      '3IVexZ_5CRpEngvvd'    // <--- Masukkan Public Key EmailJS kamu
+      '3IVexZ_5CRpEngvvd'    // <--- Public Key EmailJS
     )
     .then((response) => {
       console.log('✅ Email notifikasi berhasil dikirim ke ' + signerEmail, response.status, response.text)
@@ -480,7 +510,7 @@ function App() {
                   <th style={{ padding: '12px' }}>RECIPIENT EMAILS</th>
                   <th style={{ padding: '12px' }}>DATE CREATED</th>
                   <th style={{ padding: '12px' }}>STATUS</th>
-                  <th style={{ padding: '12px' }}>ACTION</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -507,16 +537,24 @@ function App() {
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <button 
-                          onClick={async () => {
-                            await loadDocumentData(d.id)
-                            setMode('signing')
-                          }}
-                          style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                        >
-                          Buka Portal
-                        </button>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                          <button 
+                            onClick={async () => {
+                              await loadDocumentData(d.id)
+                              setMode('signing')
+                            }}
+                            style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            Buka Portal
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteDocument(d.id, d.file_url)}
+                            style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -627,7 +665,7 @@ function App() {
                       padding: '5px',
                       display: 'flex', 
                       alignItems: 'center', 
-                      justify: 'center'
+                      justifyContent: 'center'
                     }}
                   >
                     <div style={{
@@ -637,7 +675,7 @@ function App() {
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'center',
+                      justifyContent: 'center',
                       fontWeight: 'bold', 
                       fontSize: '13px', 
                       color: progressPercent === 100 ? '#10b981' : '#3b82f6'
@@ -822,7 +860,7 @@ function App() {
                                     boxSizing: 'border-box',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    justify: 'space-between'
+                                    justifyContent: 'space-between'
                                   }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                       <span>{f.field_type === 'signature' ? '✍️ Sign' : '📝 Teks (12pt)'}</span>
@@ -844,7 +882,7 @@ function App() {
                                         borderRadius: '4px', 
                                         display: 'flex', 
                                         flexDirection: 'column', 
-                                        justify: 'flex-start', 
+                                        justifyContent: 'flex-start', 
                                         alignItems: 'flex-start', 
                                         textAlign: 'left',
                                         boxSizing: 'border-box', 
