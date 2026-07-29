@@ -66,7 +66,6 @@ function App() {
     if (!window.confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
 
     try {
-      // 1. Hapus record dokumen dari database Supabase (recipients & fields akan ikut terhapus jika di-cascade, atau dihapus manual)
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
@@ -74,7 +73,6 @@ function App() {
 
       if (dbError) throw dbError
 
-      // 2. Jika ada URL file storage, hapus filenya dari Supabase Storage
       if (fileUrl) {
         const urlParts = fileUrl.split('/')
         const fileName = urlParts[urlParts.length - 1]
@@ -88,6 +86,47 @@ function App() {
     } catch (error) {
       console.error("Gagal menghapus dokumen:", error)
       alert("Gagal menghapus dokumen: " + error.message)
+    }
+  }
+
+  // FUNGSI REMINDER EMAIL
+  const handleSendReminder = async (d) => {
+    const pendingSigner = d.recipients?.find(r => r.status === 'Mailed')
+    if (!pendingSigner) {
+      alert("Tidak ada Signer yang sedang menunggu giliran tanda tangan saat ini.")
+      return
+    }
+
+    if (!window.confirm(`Kirim email pengingat (reminder) ke ${pendingSigner.name} (${pendingSigner.email})?`)) return;
+
+    sendSigningNotificationEmail(pendingSigner.name, pendingSigner.email, d.filename)
+    alert(`Email pengingat berhasil dikirimkan ulang ke ${pendingSigner.name}! 🔔`)
+  }
+
+  // FUNGSI CANCEL REQUEST E-SIGN
+  const handleCancelRequest = async (docId) => {
+    if (!window.confirm("Apakah Anda yakin ingin MEMBATALKAN seluruh permintaan tanda tangan untuk dokumen ini?")) return;
+
+    try {
+      // Update status dokumen menjadi CANCELLED
+      const { error: docErr } = await supabase
+        .from('documents')
+        .update({ status: 'CANCELLED' })
+        .eq('id', docId)
+
+      if (docErr) throw docErr
+
+      // Update semua recipient yang belum tuntas
+      await supabase
+        .from('recipients')
+        .update({ status: 'Cancelled' })
+        .eq('document_id', docId)
+        .neq('status', 'Signed')
+
+      alert("Permintaan E-Signature berhasil dibatalkan! 🚫")
+      await fetchAllDocumentsList()
+    } catch (err) {
+      alert("Gagal membatalkan permintaan: " + err.message)
     }
   }
 
@@ -125,7 +164,7 @@ function App() {
           if (matchedSigner) {
             setActiveSigner(matchedSigner)
             setMode('signing')
-            setIsSignerOnlyView(true) // SEMBUNYIKAN SIDEBAR NAVIGASI UNTUK SIGNER
+            setIsSignerOnlyView(true)
           } else {
             const currentTurn = recData.find(r => r.status === 'Mailed') || recData[0]
             setActiveSigner(currentTurn)
@@ -159,10 +198,10 @@ function App() {
     }
 
     emailjs.send(
-      'service_zbpxi9e',   // <--- Service ID EmailJS
-      'template_41gdynq',  // <--- Template ID EmailJS
+      'service_zbpxi9e',   // Service ID EmailJS
+      'template_41gdynq',  // Template ID EmailJS
       templateParams,
-      '3IVexZ_5CRpEngvvd'    // <--- Public Key EmailJS
+      '3IVexZ_5CRpEngvvd'    // Public Key EmailJS
     )
     .then((response) => {
       console.log('✅ Email notifikasi berhasil dikirim ke ' + signerEmail, response.status, response.text)
@@ -215,7 +254,7 @@ function App() {
 
       const { data: newDoc, error: docError } = await supabase
         .from('documents')
-        .insert([{ filename: file.name, file_url: publicUrl }])
+        .insert([{ filename: file.name, file_url: publicUrl, status: 'IN_PROGRESS' }])
         .select()
         .single()
 
@@ -463,6 +502,7 @@ function App() {
   const completedCount = recipients.filter(r => r.status === 'Signed').length
   const progressPercent = recipients.length > 0 ? Math.round((completedCount / recipients.length) * 100) : 0
   const activeBox = activeFieldIndex !== null ? fields[activeFieldIndex] : null
+  const isCancelled = doc?.status === 'CANCELLED'
 
   return (
     <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh' }}>
@@ -516,6 +556,7 @@ function App() {
               <tbody>
                 {allDocuments.map((d) => {
                   const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
+                  const isDocCancelled = d.status === 'CANCELLED'
 
                   return (
                     <tr key={d.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
@@ -527,7 +568,11 @@ function App() {
                         {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
                       <td style={{ padding: '12px' }}>
-                        {isAllSigned ? (
+                        {isDocCancelled ? (
+                          <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' }}>
+                            🚫 CANCELLED
+                          </span>
+                        ) : isAllSigned ? (
                           <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' }}>
                             ✓ COMPLETED
                           </span>
@@ -538,19 +583,39 @@ function App() {
                         )}
                       </td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           <button 
                             onClick={async () => {
                               await loadDocumentData(d.id)
                               setMode('signing')
                             }}
-                            style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                           >
                             Buka Portal
                           </button>
+
+                          {!isAllSigned && !isDocCancelled && (
+                            <>
+                              <button 
+                                onClick={() => handleSendReminder(d)}
+                                style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                title="Kirim email pengingat ke Signer aktif"
+                              >
+                                🔔 Reminder
+                              </button>
+                              <button 
+                                onClick={() => handleCancelRequest(d.id)}
+                                style={{ backgroundColor: '#64748b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                title="Batalkan permintaan E-Sign"
+                              >
+                                🚫 Cancel
+                              </button>
+                            </>
+                          )}
+
                           <button 
                             onClick={() => handleDeleteDocument(d.id, d.file_url)}
-                            style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                            style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                           >
                             Hapus
                           </button>
@@ -690,7 +755,7 @@ function App() {
                   </div>
                 </div>
 
-                {activeSigner?.status === 'Mailed' && (
+                {!isCancelled && activeSigner?.status === 'Mailed' && (
                   <button 
                     onClick={handleFinishSigning}
                     disabled={isSubmitting}
@@ -711,6 +776,13 @@ function App() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* NOTIFIKASI JIKA DOKUMEN DIBATALKAN */}
+        {isCancelled && mode !== 'dashboard' && (
+          <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '15px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center' }}>
+            🚫 Permintaan tanda tangan untuk dokumen ini telah DIBATALKAN oleh pengirim. Anda tidak dapat lagi mengubah atau menandatangani dokumen ini.
           </div>
         )}
 
@@ -915,7 +987,7 @@ function App() {
 
                                         <div style={{ fontSize: '8px', color: '#166534', fontWeight: 'bold', marginTop: 'auto' }}>✓ Signed</div>
                                       </div>
-                                    ) : isMyField && activeSigner?.status === 'Mailed' ? (
+                                    ) : !isCancelled && isMyField && activeSigner?.status === 'Mailed' ? (
                                       
                                       <div style={{ width: '100%', height: '100%' }}>
                                         {f.field_type === 'text' ? (
