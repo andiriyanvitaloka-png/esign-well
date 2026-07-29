@@ -501,12 +501,12 @@ function App() {
 
         if (textToDraw) {
           pdfPage.drawText(textToDraw, {
-            x: xPos + (6 * scaleRatio), // padding
-            y: yPosCenter, // vertikal center yang sempurna
+            x: xPos + (6 * scaleRatio), 
+            y: yPosCenter, 
             size: fontSize,
             font: helveticaRegular,
             color: f.field_type === 'signature' ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
-            maxWidth: boxWidthPdf - (12 * scaleRatio), // Auto wrap jika teks terlalu panjang
+            maxWidth: boxWidthPdf - (12 * scaleRatio), 
             lineHeight: fontSize * 1.2
           })
         }
@@ -533,18 +533,20 @@ function App() {
   const isCancelled = doc?.status === 'CANCELLED'
 
   return (
-    <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* SIDEBAR NAVIGATION */}
+      {/* SIDEBAR NAVIGATION - ELEGAN */}
       {!isSignerOnlyView && (
-        <div className="sidebar" style={{ width: '240px', backgroundColor: '#1e293b', color: 'white', padding: '20px' }}>
-          <h2 style={{ fontSize: '22px', marginBottom: '30px' }}>E-Sign Well</h2>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ fontSize: '26px', marginBottom: '40px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.5px' }}>
+            E-Sign Well
+          </h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <li className={mode === 'dashboard' ? 'active' : ''} onClick={() => setMode('dashboard')} style={menuItemStyle(mode === 'dashboard')}>
               📁 All Documents
             </li>
             <li className={mode === 'upload' ? 'active' : ''} onClick={() => setMode('upload')} style={menuItemStyle(mode === 'upload')}>
-              ➕ Upload Dokumen Baru
+              ➕ Upload Baru
             </li>
             <li className={mode === 'plotting' ? 'active' : ''} onClick={() => setMode('plotting')} style={menuItemStyle(mode === 'plotting')}>
               📐 Plotting Fields
@@ -556,145 +558,154 @@ function App() {
         </div>
       )}
 
-      <div className="main-content" style={{ flex: 1, padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: '#f8fafc' }}>
+      <div className="main-content" style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         
-        {/* TABEL DASHBOARD "ALL DOCUMENTS" */}
+        {/* TABEL DASHBOARD "ALL DOCUMENTS" - ELEGAN */}
         {!isSignerOnlyView && mode === 'dashboard' && (
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '22px' }}>All Documents</h2>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', border: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '24px', color: '#111827', fontWeight: '700' }}>Semua Dokumen</h2>
+                <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>Kelola permintaan tanda tangan Anda di sini.</p>
+              </div>
               <button 
                 onClick={() => setMode('upload')}
-                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)', transition: 'all 0.2s' }}
               >
                 + Upload New Document
               </button>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '12px' }}>DOCUMENT NAME</th>
-                  <th style={{ padding: '12px' }}>RECIPIENT EMAILS</th>
-                  <th style={{ padding: '12px' }}>DATE CREATED</th>
-                  <th style={{ padding: '12px' }}>STATUS</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allDocuments.map((d) => {
-                  const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
-                  const isDocCancelled = d.status === 'CANCELLED'
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', color: '#475569', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>
+                    <th style={{ padding: '16px 20px', borderRadius: '8px 0 0 8px', fontWeight: '600' }}>Document Name</th>
+                    <th style={{ padding: '16px 20px', fontWeight: '600' }}>Recipient Emails</th>
+                    <th style={{ padding: '16px 20px', fontWeight: '600' }}>Date Created</th>
+                    <th style={{ padding: '16px 20px', fontWeight: '600' }}>Status</th>
+                    <th style={{ padding: '16px 20px', textAlign: 'center', borderRadius: '0 8px 8px 0', fontWeight: '600' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allDocuments.map((d) => {
+                    const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
+                    const isDocCancelled = d.status === 'CANCELLED'
 
-                  return (
-                    <tr key={d.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#1e293b' }}>{d.filename}</td>
-                      <td style={{ padding: '12px', color: '#64748b' }}>
-                        {d.recipients?.map(r => r.email).join(', ') || '-'}
-                      </td>
-                      <td style={{ padding: '12px', color: '#64748b' }}>
-                        {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {isDocCancelled ? (
-                          <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' }}>
-                            🚫 CANCELLED
-                          </span>
-                        ) : isAllSigned ? (
-                          <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' }}>
-                            ✓ COMPLETED
-                          </span>
-                        ) : (
-                          <span style={{ backgroundColor: '#ffedd5', color: '#c2410c', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' }}>
-                            ⏳ IN PROGRESS
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <button 
-                            onClick={async () => {
-                              await loadDocumentData(d.id)
-                              setMode('signing')
-                            }}
-                            style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Buka Portal
-                          </button>
-
-                          {!isAllSigned && !isDocCancelled && (
-                            <>
-                              <button 
-                                onClick={() => handleSendReminder(d)}
-                                style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                                title="Kirim email pengingat ke Signer aktif"
-                              >
-                                🔔 Reminder
-                              </button>
-                              <button 
-                                onClick={() => handleCancelRequest(d.id)}
-                                style={{ backgroundColor: '#64748b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                                title="Batalkan permintaan E-Sign"
-                              >
-                                🚫 Cancel
-                              </button>
-                            </>
+                    return (
+                      <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
+                        <td style={{ padding: '20px', fontWeight: '600', color: '#1e293b' }}>{d.filename}</td>
+                        <td style={{ padding: '20px', color: '#64748b', lineHeight: '1.5' }}>
+                          {d.recipients?.map(r => r.email).join(', ') || '-'}
+                        </td>
+                        <td style={{ padding: '20px', color: '#64748b' }}>
+                          {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '20px' }}>
+                          {isDocCancelled ? (
+                            <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '6px 12px', borderRadius: '9999px', fontWeight: '700', fontSize: '11px', border: '1px solid #fecaca' }}>
+                              🚫 CANCELLED
+                            </span>
+                          ) : isAllSigned ? (
+                            <span style={{ backgroundColor: '#ecfdf5', color: '#065f46', padding: '6px 12px', borderRadius: '9999px', fontWeight: '700', fontSize: '11px', border: '1px solid #a7f3d0' }}>
+                              ✓ COMPLETED
+                            </span>
+                          ) : (
+                            <span style={{ backgroundColor: '#fffbeb', color: '#92400e', padding: '6px 12px', borderRadius: '9999px', fontWeight: '700', fontSize: '11px', border: '1px solid #fde68a' }}>
+                              ⏳ IN PROGRESS
+                            </span>
                           )}
+                        </td>
+                        <td style={{ padding: '20px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <button 
+                              onClick={async () => {
+                                await loadDocumentData(d.id)
+                                setMode('signing')
+                              }}
+                              style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: 'all 0.2s' }}
+                            >
+                              Buka Portal
+                            </button>
 
-                          <button 
-                            onClick={() => handleDeleteDocument(d.id, d.file_url)}
-                            style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            Hapus
-                          </button>
-                        </div>
+                            {!isAllSigned && !isDocCancelled && (
+                              <>
+                                <button 
+                                  onClick={() => handleSendReminder(d)}
+                                  style={{ backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                                  title="Kirim email pengingat ke Signer aktif"
+                                >
+                                  🔔 Reminder
+                                </button>
+                                <button 
+                                  onClick={() => handleCancelRequest(d.id)}
+                                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                                  title="Batalkan permintaan E-Sign"
+                                >
+                                  🚫 Cancel
+                                </button>
+                              </>
+                            )}
+
+                            <button 
+                              onClick={() => handleDeleteDocument(d.id, d.file_url)}
+                              style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {allDocuments.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>
+                        Belum ada dokumen yang dikirim.
                       </td>
                     </tr>
-                  )
-                })}
-
-                {allDocuments.length === 0 && (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                      Belum ada dokumen yang dikirim.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* MODE 0: FORM UPLOAD DOKUMEN BARU */}
+        {/* MODE 0: FORM UPLOAD DOKUMEN BARU - ELEGAN */}
         {!isSignerOnlyView && mode === 'upload' && (
-          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '700px', margin: '0 auto', width: '100%' }}>
-            <h2>Upload Dokumen & Atur Signer Baru</h2>
-            <p style={{ color: '#64748b' }}>Pilih file PDF dan daftarkan Signer untuk memulai proses baru.</p>
+          <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', maxWidth: '750px', margin: '0 auto', width: '100%' }}>
+            <h2 style={{ fontSize: '24px', margin: '0 0 8px 0', color: '#111827' }}>Upload Dokumen & Atur Signer Baru</h2>
+            <p style={{ color: '#6b7280', margin: '0 0 32px 0' }}>Pilih file PDF dan daftarkan Signer untuk memulai proses E-Signature.</p>
 
-            <form onSubmit={handleUploadSubmit} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>File PDF Dokumen:</label>
-                <input 
-                  type="file" 
-                  accept="application/pdf" 
-                  onChange={(e) => setFile(e.target.files[0])}
-                  style={{ padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', width: '100%' }}
-                />
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>File PDF Dokumen:</label>
+                <div style={{ border: '1px dashed #cbd5e1', padding: '20px', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                  <input 
+                    type="file" 
+                    accept="application/pdf" 
+                    onChange={(e) => setFile(e.target.files[0])}
+                    style={{ width: '100%', color: '#475569' }}
+                  />
+                </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '10px' }}>Daftar Antrean Signer (Berurutan):</label>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '12px', color: '#374151' }}>Daftar Antrean Signer (Berurutan):</label>
                 
                 {signerList.map((signer, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '13px', width: '70px' }}>Signer {i + 1}:</span>
+                  <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: '#e0f2fe', color: '#0369a1', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '14px' }}>
+                      {i + 1}
+                    </div>
                     <input 
                       type="text" 
                       placeholder="Nama lengkap" 
                       value={signer.name}
                       onChange={(e) => handleSignerChange(i, 'name', e.target.value)}
                       required
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
                     />
                     <input 
                       type="email" 
@@ -702,15 +713,15 @@ function App() {
                       value={signer.email}
                       onChange={(e) => handleSignerChange(i, 'email', e.target.value)}
                       required
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
                     />
                     {signerList.length > 1 && (
                       <button 
                         type="button" 
                         onClick={() => removeSignerRow(i)}
-                        style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ backgroundColor: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '20px', padding: '4px' }}
                       >
-                        Hapus
+                        ✕
                       </button>
                     )}
                   </div>
@@ -719,7 +730,7 @@ function App() {
                 <button 
                   type="button" 
                   onClick={addSignerRow}
-                  style={{ backgroundColor: '#e2e8f0', color: '#1e293b', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginTop: '5px' }}
+                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px dashed #cbd5e1', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', marginTop: '8px', width: '100%' }}
                 >
                   + Tambah Signer Berikutnya
                 </button>
@@ -728,7 +739,7 @@ function App() {
               <button 
                 type="submit" 
                 disabled={isUploading}
-                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', marginTop: '10px' }}
+                style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', marginTop: '16px', boxShadow: '0 4px 6px rgba(59, 130, 246, 0.2)' }}
               >
                 {isUploading ? "Mengunggah & Menyimpan..." : "Kirim Request E-Signature Baru 🎉"}
               </button>
@@ -738,24 +749,24 @@ function App() {
 
         {/* TOP BAR HEADER */}
         {mode !== 'upload' && mode !== 'dashboard' && doc && (
-          <div style={{ backgroundColor: 'white', padding: '15px 25px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>{doc.filename}</h2>
-              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+              <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>{doc.filename}</h2>
+              <p style={{ margin: '6px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
                 {isSignerOnlyView ? `Portal Penandatanganan untuk: ${activeSigner?.name}` : `Mode Aktif: ${mode === 'plotting' ? 'Pengaturan Posisi Kotak' : 'Portal Pengisian Dokumen'}`}
               </p>
             </div>
 
             {mode === 'signing' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div 
                     style={{ 
-                      width: '55px', 
-                      height: '55px', 
+                      width: '48px', 
+                      height: '48px', 
                       borderRadius: '50%', 
                       background: `conic-gradient(${progressPercent === 100 ? '#10b981' : '#3b82f6'} ${progressPercent * 3.6}deg, #e2e8f0 0deg)`,
-                      padding: '5px',
+                      padding: '4px',
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center'
@@ -770,7 +781,7 @@ function App() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 'bold', 
-                      fontSize: '13px', 
+                      fontSize: '12px', 
                       color: progressPercent === 100 ? '#10b981' : '#3b82f6'
                     }}>
                       {progressPercent}%
@@ -778,8 +789,8 @@ function App() {
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Progress Complete</div>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>{completedCount} dari {recipients.length} Signer</div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151' }}>Progress Update</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{completedCount} dari {recipients.length} Selesai</div>
                   </div>
                 </div>
 
@@ -787,7 +798,7 @@ function App() {
                   <button 
                     onClick={handleFinishSigning}
                     disabled={isSubmitting}
-                    style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                    style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
                   >
                     {isSubmitting ? "Menyimpan..." : "✓ Selesaikan & Kirim"}
                   </button>
@@ -797,7 +808,7 @@ function App() {
                   <button 
                     onClick={handleDownloadFinalPdf}
                     disabled={isDownloading}
-                    style={{ backgroundColor: '#0284c7', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(2, 132, 199, 0.3)' }}
+                    style={{ backgroundColor: '#0284c7', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px rgba(2, 132, 199, 0.3)' }}
                   >
                     {isDownloading ? "Mengolah PDF..." : "📥 Download Signed PDF"}
                   </button>
@@ -809,49 +820,53 @@ function App() {
 
         {/* NOTIFIKASI JIKA DOKUMEN DIBATALKAN */}
         {isCancelled && mode !== 'dashboard' && (
-          <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '15px 20px', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center' }}>
-            🚫 Permintaan tanda tangan untuk dokumen ini telah DIBATALKAN oleh pengirim. Anda tidak dapat lagi mengubah atau menandatangani dokumen ini.
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '16px 24px', borderRadius: '12px', fontWeight: '600', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '20px' }}>🚫</span> Permintaan tanda tangan untuk dokumen ini telah dibatalkan oleh pengirim.
           </div>
         )}
 
         {/* AREA DOKUMEN & KONTROL */}
         {mode !== 'upload' && mode !== 'dashboard' && (
-          <div style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '24px' }}>
             
             {/* PANEL KONTROL PLOTTING */}
             {mode === 'plotting' && (
-              <div style={{ width: '300px', backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 'fit-content' }}>
-                <h3>Atur Ukuran & Posisi</h3>
+              <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#111827', fontSize: '18px' }}>Atur Ukuran & Posisi</h3>
                 
-                <div style={{ marginTop: '10px' }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', fontSize: '12px', marginBottom: '4px' }}>Target Signer:</label>
-                  <select 
-                    value={selectedRecipientId} 
-                    onChange={(e) => setSelectedRecipientId(e.target.value)}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '12px' }}
-                  >
-                    {recipients.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        Signer {r.signing_order}: {r.name}
-                      </option>
-                    ))}
-                  </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#4b5563' }}>Pilih Target Signer:</label>
+                    <select 
+                      value={selectedRecipientId} 
+                      onChange={(e) => setSelectedRecipientId(e.target.value)}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb' }}
+                    >
+                      {recipients.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          Signer {r.signing_order}: {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <label style={{ display: 'block', fontWeight: 'bold', fontSize: '12px', marginBottom: '4px' }}>Tipe Kotak:</label>
-                  <select 
-                    value={fieldType} 
-                    onChange={(e) => setFieldType(e.target.value)}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                  >
-                    <option value="signature">✍️ Tanda Tangan</option>
-                    <option value="text">📝 Teks Kesimpulan (12pt)</option>
-                  </select>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#4b5563' }}>Pilih Tipe Kotak:</label>
+                    <select 
+                      value={fieldType} 
+                      onChange={(e) => setFieldType(e.target.value)}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb' }}
+                    >
+                      <option value="signature">✍️ Tanda Tangan</option>
+                      <option value="text">📝 Teks Kesimpulan (12pt)</option>
+                    </select>
+                  </div>
                 </div>
 
                 {activeBox && (
-                  <div style={{ marginTop: '15px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px' }}>Sesuaikan Ukuran Kotak</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <div style={{ marginTop: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#334155' }}>Sesuaikan Ukuran Kotak Aktif</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       <button onClick={() => updateActiveField('width', -20)} style={btnStyle}>Lebar -</button>
                       <button onClick={() => updateActiveField('width', 20)} style={btnStyle}>Lebar +</button>
                       <button onClick={() => updateActiveField('height', -10)} style={btnStyle}>Tinggi -</button>
@@ -860,12 +875,12 @@ function App() {
                   </div>
                 )}
 
-                <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
                 <button 
                   onClick={handleSaveFields}
                   disabled={isSaving}
-                  style={{ width: '100%', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ width: '100%', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}
                 >
                   {isSaving ? "Menyimpan..." : "Simpan Posisi & Ukuran"}
                 </button>
@@ -874,9 +889,9 @@ function App() {
 
             {/* SIMULATOR SIGNER */}
             {!isSignerOnlyView && mode === 'signing' && (
-              <div style={{ width: '280px', backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 'fit-content' }}>
-                <h3>Mode Simulasi Signer</h3>
-                <p style={{ fontSize: '12px', color: '#64748b' }}>Pilih siapa yang sedang membuka portal saat ini:</p>
+              <div style={{ width: '320px', backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', height: 'fit-content' }}>
+                <h3 style={{ margin: '0 0 8px 0', color: '#111827', fontSize: '18px' }}>Mode Simulasi Signer</h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0' }}>Lihat dokumen dari sudut pandang Signer tertentu.</p>
                 
                 <select 
                   value={activeSigner?.id || ''} 
@@ -884,7 +899,7 @@ function App() {
                     const selected = recipients.find(r => r.id === e.target.value)
                     setActiveSigner(selected)
                   }}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: '600', color: '#1e293b', outline: 'none' }}
                 >
                   {recipients.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -896,27 +911,27 @@ function App() {
             )}
 
             {/* AREA DOKUMEN PDF */}
-            <div style={{ flex: 1, backgroundColor: '#cbd5e1', padding: '25px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ flex: 1, backgroundColor: '#cbd5e1', padding: '32px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', overflowY: 'auto', border: '1px solid #94a3b8' }}>
               
               {doc && (
                 <Document file={doc.file_url} onLoadSuccess={({ numPages }) => setNumPages(numPages)}>
                   {Array.from(new Array(numPages || 0), (_, index) => {
                     const pageNo = index + 1
                     return (
-                      <div key={pageNo} style={{ marginBottom: '25px', textAlign: 'center' }}>
+                      <div key={pageNo} style={{ marginBottom: '32px', textAlign: 'center' }}>
                         
                         {mode === 'plotting' && (
-                          <div style={{ marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '4px 12px', borderRadius: '4px' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '12px' }}>Halaman {pageNo}</span>
-                            <button onClick={() => handleAddBox(pageNo)} style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-                              + Buat Kotak
+                          <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', width: '800px', margin: '0 auto 12px auto' }}>
+                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#475569' }}>Halaman {pageNo}</span>
+                            <button onClick={() => handleAddBox(pageNo)} style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                              + Buat Kotak Disini
                             </button>
                           </div>
                         )}
 
                         <div 
                           onMouseMove={(e) => handleMouseMove(e, 800, 1100)}
-                          style={{ position: 'relative', boxShadow: '0 10px 20px rgba(0,0,0,0.15)', display: 'inline-block', userSelect: 'none' }}
+                          style={{ position: 'relative', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', display: 'inline-block', userSelect: 'none' }}
                         >
                           <Page pageNumber={pageNo} width={800} renderTextLayer={false} renderAnnotationLayer={false} />
 
@@ -951,20 +966,21 @@ function App() {
                                     width: '100%',
                                     height: '100%',
                                     backgroundColor: f.field_type === 'signature' ? 'rgba(59, 130, 246, 0.85)' : 'rgba(139, 92, 246, 0.85)',
-                                    border: isActive ? '2px solid #f59e0b' : '1px solid transparent',
+                                    border: isActive ? '2px solid #fcd34d' : '1px solid transparent',
                                     color: 'white',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
+                                    padding: '6px 10px',
+                                    borderRadius: '6px',
                                     fontSize: '11px',
                                     cursor: 'grab',
                                     boxSizing: 'border-box',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    justifyContent: 'space-between'
+                                    justifyContent: 'space-between',
+                                    boxShadow: isActive ? '0 0 0 2px rgba(252, 211, 77, 0.5)' : 'none'
                                   }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                       <span>{f.field_type === 'signature' ? '✍️ Sign' : '📝 Teks (12pt)'}</span>
-                                      <span onClick={(e) => { e.stopPropagation(); removeField(realIndex); }} style={{ cursor: 'pointer' }}>✕</span>
+                                      <span onClick={(e) => { e.stopPropagation(); removeField(realIndex); }} style={{ cursor: 'pointer', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</span>
                                     </div>
                                     <div style={{ fontSize: '10px', opacity: 0.9 }}>Signer {f.signing_order}: {f.recipient_email}</div>
                                   </div>
@@ -979,7 +995,7 @@ function App() {
                                         backgroundColor: 'rgba(220, 252, 231, 0.95)', 
                                         color: '#15803d', 
                                         padding: boxHeight < 40 ? '2px 6px' : '6px 8px', 
-                                        borderRadius: '4px', 
+                                        borderRadius: '6px', 
                                         display: 'flex', 
                                         flexDirection: 'column', 
                                         justifyContent: 'center', 
@@ -1016,7 +1032,7 @@ function App() {
                                         )}
 
                                         {boxHeight >= 40 && (
-                                          <div style={{ fontSize: '8px', color: '#166534', fontWeight: 'bold', position: 'absolute', bottom: '4px', right: '6px' }}>✓ Signed</div>
+                                          <div style={{ fontSize: '9px', color: '#166534', fontWeight: 'bold', position: 'absolute', bottom: '4px', right: '6px' }}>✓ Signed</div>
                                         )}
                                       </div>
                                     ) : !isCancelled && isMyField && activeSigner?.status === 'Mailed' ? (
@@ -1030,15 +1046,17 @@ function App() {
                                             style={{ 
                                               width: '100%', 
                                               height: '100%', 
-                                              padding: '8px', 
+                                              padding: '10px', 
                                               border: '2px solid #3b82f6', 
-                                              borderRadius: '4px', 
+                                              borderRadius: '6px', 
                                               resize: 'none', 
                                               fontFamily: 'inherit', 
                                               fontSize: '12pt', 
                                               fontWeight: 'normal',
                                               backgroundColor: '#eff6ff', 
-                                              boxSizing: 'border-box' 
+                                              boxSizing: 'border-box',
+                                              outline: 'none',
+                                              boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)'
                                             }}
                                           />
                                         ) : (
@@ -1052,14 +1070,16 @@ function App() {
                                               height: '100%', 
                                               padding: '4px', 
                                               border: '2px solid #3b82f6', 
-                                              borderRadius: '4px', 
+                                              borderRadius: '6px', 
                                               fontFamily: 'Dancing Script, cursive', 
                                               fontSize: `${Math.min(boxHeight * 0.45, 18)}px`, 
                                               backgroundColor: '#eff6ff', 
                                               textAlign: 'center', 
                                               fontWeight: 'normal',
                                               color: '#1e40af',
-                                              boxSizing: 'border-box' 
+                                              boxSizing: 'border-box',
+                                              outline: 'none',
+                                              boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)'
                                             }}
                                           />
                                         )}
@@ -1067,9 +1087,9 @@ function App() {
 
                                     ) : (
 
-                                      <div style={{ width: '100%', height: '100%', border: '1.5px dashed #cbd5e1', backgroundColor: 'rgba(241, 245, 249, 0.75)', color: '#64748b', padding: '4px', borderRadius: '4px', fontSize: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxSizing: 'border-box', cursor: 'not-allowed' }}>
-                                        <span style={{ fontWeight: 'normal' }}>🔒 Kolom {targetRecipient?.name}</span>
-                                        <span style={{ fontSize: '8px', opacity: 0.8 }}>Signer {f.signing_order}</span>
+                                      <div style={{ width: '100%', height: '100%', border: '1.5px dashed #cbd5e1', backgroundColor: 'rgba(241, 245, 249, 0.8)', color: '#64748b', padding: '4px', borderRadius: '6px', fontSize: '11px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxSizing: 'border-box', cursor: 'not-allowed' }}>
+                                        <span style={{ fontWeight: '600' }}>🔒 Kolom {targetRecipient?.name}</span>
+                                        <span style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>Signer {f.signing_order}</span>
                                       </div>
 
                                     )}
@@ -1099,19 +1119,25 @@ function App() {
 
 const menuItemStyle = (isActive) => ({
   cursor: 'pointer',
-  padding: '10px 12px',
-  borderRadius: '6px',
-  backgroundColor: isActive ? '#3b82f6' : 'transparent',
-  fontWeight: isActive ? 'bold' : 'normal'
+  padding: '12px 16px',
+  borderRadius: '8px',
+  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+  color: isActive ? '#38bdf8' : '#cbd5e1',
+  fontWeight: isActive ? '600' : '500',
+  transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px'
 })
 
 const btnStyle = {
-  backgroundColor: '#e2e8f0',
-  border: 'none',
+  backgroundColor: '#f1f5f9',
+  border: '1px solid #cbd5e1',
+  color: '#475569',
   padding: '6px',
-  borderRadius: '4px',
+  borderRadius: '6px',
   cursor: 'pointer',
-  fontWeight: 'bold',
+  fontWeight: '600',
   fontSize: '12px'
 }
 
