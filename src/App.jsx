@@ -182,6 +182,15 @@ function App() {
 
       if (fieldData) {
         setFields(fieldData)
+        
+        // Populate fieldInputs dengan value yang sudah tersimpan di database
+        const initialInputs = {}
+        fieldData.forEach(f => {
+          if (f.field_value) {
+            initialInputs[f.id] = f.field_value
+          }
+        })
+        setFieldInputs(initialInputs)
       }
     }
   }
@@ -425,12 +434,21 @@ function App() {
     try {
       const summaryText = myFields.map(f => fieldInputs[f.id]).join("\n\n")
 
+      // 1. Update status recipient
       const { error: updateError } = await supabase
         .from('recipients')
         .update({ status: 'Signed', conclusion: summaryText })
         .eq('id', activeSigner.id)
 
       if (updateError) throw updateError
+
+      // 2. Simpan nilai teks per-field ke database agar bisa dibaca signer selanjutnya
+      for (const f of myFields) {
+        await supabase
+          .from('document_fields')
+          .update({ field_value: fieldInputs[f.id] })
+          .eq('id', f.id)
+      }
 
       const nextOrder = activeSigner.signing_order + 1
       const nextSigner = recipients.find(r => r.signing_order === nextOrder)
