@@ -108,7 +108,6 @@ function App() {
     if (!window.confirm("Apakah Anda yakin ingin MEMBATALKAN seluruh permintaan tanda tangan untuk dokumen ini?")) return;
 
     try {
-      // Update status dokumen menjadi CANCELLED
       const { error: docErr } = await supabase
         .from('documents')
         .update({ status: 'CANCELLED' })
@@ -116,7 +115,6 @@ function App() {
 
       if (docErr) throw docErr
 
-      // Update semua recipient yang belum tuntas
       await supabase
         .from('recipients')
         .update({ status: 'Cancelled' })
@@ -154,7 +152,6 @@ function App() {
         setRecipients(recData)
         setSelectedRecipientId(recData[0].id)
 
-        // BACA PARAMETER DARI URL LINK EMAIL
         const queryParams = new URLSearchParams(window.location.search)
         const urlMode = queryParams.get('mode')
         const urlEmail = queryParams.get('email')
@@ -183,7 +180,6 @@ function App() {
       if (fieldData) {
         setFields(fieldData)
         
-        // Populate fieldInputs dengan value yang sudah tersimpan di database
         const initialInputs = {}
         fieldData.forEach(f => {
           if (f.field_value) {
@@ -195,7 +191,7 @@ function App() {
     }
   }
 
-  // --- FUNGSI PENGIRIMAN EMAIL DENGAN DIRECT LINK ---
+  // --- FUNGSI PENGIRIMAN EMAIL ---
   const sendSigningNotificationEmail = (signerName, signerEmail, documentName) => {
     const directSigningLink = `${window.location.origin}/?mode=signing&email=${encodeURIComponent(signerEmail)}`
 
@@ -207,20 +203,19 @@ function App() {
     }
 
     emailjs.send(
-      'service_zbpxi9e',   // Service ID EmailJS
-      'template_41gdynq',  // Template ID EmailJS
+      'service_zbpxi9e',   
+      'template_41gdynq',  
       templateParams,
-      '3IVexZ_5CRpEngvvd'    // Public Key EmailJS
+      '3IVexZ_5CRpEngvvd'    
     )
     .then((response) => {
-      console.log('✅ Email notifikasi berhasil dikirim ke ' + signerEmail, response.status, response.text)
+      console.log('✅ Email notifikasi berhasil dikirim', response.status, response.text)
     })
     .catch((err) => {
       console.error('❌ Gagal mengirim email notifikasi:', err)
     })
   }
 
-  // --- LOGIKA FORM UPLOAD DOKUMEN BARU ---
   const handleSignerChange = (index, field, value) => {
     const updated = [...signerList]
     updated[index][field] = value
@@ -287,7 +282,7 @@ function App() {
         sendSigningNotificationEmail(signerList[0].name, signerList[0].email, file.name)
       }
 
-      alert("Berhasil mengunggah dokumen & mendaftarkan Signer baru! Email notifikasi telah dikirim. 🎉")
+      alert("Berhasil mengunggah dokumen & mendaftarkan Signer baru! 🎉")
       setFile(null)
       setFieldInputs({})
       await fetchAllDocumentsList()
@@ -301,7 +296,7 @@ function App() {
     }
   }
 
-  // --- LOGIKA PLOTTING (FORM BUILDER) ---
+  // --- LOGIKA PLOTTING ---
   const handleAddBox = (pageNo) => {
     const signerAktif = recipients.find(r => r.id === selectedRecipientId)
     if (!signerAktif) {
@@ -411,7 +406,6 @@ function App() {
     }
   }
 
-  // --- LOGIKA SIGNING PORTAL ---
   const handleInputChange = (fieldId, value) => {
     setFieldInputs(prev => ({
       ...prev,
@@ -434,7 +428,6 @@ function App() {
     try {
       const summaryText = myFields.map(f => fieldInputs[f.id]).join("\n\n")
 
-      // 1. Update status recipient
       const { error: updateError } = await supabase
         .from('recipients')
         .update({ status: 'Signed', conclusion: summaryText })
@@ -442,7 +435,6 @@ function App() {
 
       if (updateError) throw updateError
 
-      // 2. Simpan nilai teks per-field ke database agar bisa dibaca signer selanjutnya
       for (const f of myFields) {
         await supabase
           .from('document_fields')
@@ -458,7 +450,7 @@ function App() {
         sendSigningNotificationEmail(nextSigner.name, nextSigner.email, doc.filename)
       }
 
-      alert(`Terima kasih ${activeSigner.name}, dokumen Anda berhasil disimpan! Notifikasi email telah dikirim ke Signer berikutnya. 🎉`)
+      alert(`Terima kasih ${activeSigner.name}, dokumen Anda berhasil disimpan! 🎉`)
       await loadDocumentData(doc.id)
       await fetchAllDocumentsList()
 
@@ -469,7 +461,7 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL ---
+  // --- DOWNLOAD PDF FINAL (DIPERBARUI PERHITUNGAN X & Y) ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
@@ -486,18 +478,36 @@ function App() {
 
         const { width: pdfWidth, height: pdfHeight } = pdfPage.getSize()
 
-        const xPos = (f.x_position / 100) * pdfWidth
-        const yPos = pdfHeight - ((f.y_position / 100) * pdfHeight) - ((f.height || 40) * (pdfHeight / 1100))
+        // Skala referensi web UI = 800px width
+        const scaleRatio = pdfWidth / 800;
 
+        const xPos = (f.x_position / 100) * pdfWidth
+        const yTop = pdfHeight - ((f.y_position / 100) * pdfHeight)
+        
+        const boxWidthPx = f.width || (f.field_type === 'text' ? 300 : 180)
+        const boxHeightPx = f.height || (f.field_type === 'text' ? 80 : 45)
+        
+        const boxHeightPdf = boxHeightPx * scaleRatio
+        const boxWidthPdf = boxWidthPx * scaleRatio
+
+        const fontSize = f.field_type === 'signature' ? 14 : 11
+        
         const textToDraw = fieldInputs[f.id] || ''
+
+        // Kalkulasi Y Center yang akurat berdasarkan baris teks
+        const textLines = textToDraw.split('\n').length
+        const totalTextHeight = textLines * (fontSize * 1.2)
+        const yPosCenter = yTop - (boxHeightPdf / 2) + (totalTextHeight / 2) - fontSize
 
         if (textToDraw) {
           pdfPage.drawText(textToDraw, {
-            x: xPos + 5,
-            y: yPos + 10,
-            size: f.field_type === 'signature' ? 14 : 11,
+            x: xPos + (6 * scaleRatio), // padding
+            y: yPosCenter, // vertikal center yang sempurna
+            size: fontSize,
             font: helveticaRegular,
             color: f.field_type === 'signature' ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
+            maxWidth: boxWidthPdf - (12 * scaleRatio), // Auto wrap jika teks terlalu panjang
+            lineHeight: fontSize * 1.2
           })
         }
       })
@@ -968,11 +978,11 @@ function App() {
                                         border: '1.5px solid #16a34a', 
                                         backgroundColor: 'rgba(220, 252, 231, 0.95)', 
                                         color: '#15803d', 
-                                        padding: boxHeight < 40 ? '2px 6px' : '6px 8px', // Padding otomatis mengecil jika kotak tipis
+                                        padding: boxHeight < 40 ? '2px 6px' : '6px 8px', 
                                         borderRadius: '4px', 
                                         display: 'flex', 
                                         flexDirection: 'column', 
-                                        justifyContent: 'center', // Agar teks ke tengah vertikal
+                                        justifyContent: 'center', 
                                         alignItems: 'flex-start', 
                                         textAlign: 'left',
                                         boxSizing: 'border-box', 
@@ -994,7 +1004,7 @@ function App() {
                                           </div>
                                         ) : (
                                           <div style={{ 
-                                            fontSize: boxHeight < 40 ? '10pt' : '12pt', // Ukuran font otomatis mengecil dikit jika tipis
+                                            fontSize: boxHeight < 40 ? '10pt' : '12pt', 
                                             fontWeight: 'normal',
                                             wordBreak: 'break-word',
                                             whiteSpace: 'pre-wrap',
@@ -1005,7 +1015,6 @@ function App() {
                                           </div>
                                         )}
 
-                                        {/* Sembunyikan tulisan ✓ Signed jika kotak terlalu tipis agar tidak makan tempat */}
                                         {boxHeight >= 40 && (
                                           <div style={{ fontSize: '8px', color: '#166534', fontWeight: 'bold', position: 'absolute', bottom: '4px', right: '6px' }}>✓ Signed</div>
                                         )}
