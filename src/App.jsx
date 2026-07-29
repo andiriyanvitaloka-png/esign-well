@@ -546,7 +546,7 @@ function App() {
   return (
     <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* SIDEBAR NAVIGATION - HANYA ALL DOCS & UPLOAD BARU */}
+      {/* SIDEBAR NAVIGATION */}
       {!isSignerOnlyView && (
         <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ fontSize: '26px', marginBottom: '40px', fontWeight: '800', background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.5px' }}>
@@ -565,7 +565,7 @@ function App() {
 
       <div className="main-content" style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
         
-        {/* TABEL DASHBOARD "ALL DOCUMENTS" DENGAN FILTER & DROPDOWN */}
+        {/* TABEL DASHBOARD "ALL DOCUMENTS" */}
         {!isSignerOnlyView && mode === 'dashboard' && (
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', border: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -622,14 +622,62 @@ function App() {
                     return (
                       <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
                         <td style={{ padding: '20px', fontWeight: '600', color: '#1e293b' }}>{d.filename}</td>
-                        <td style={{ padding: '20px', color: '#64748b', lineHeight: '1.5' }}>
-                          {d.recipients?.map(r => r.email).join(', ') || '-'}
+                        
+                        {/* UPDATE KOLOM RECIPIENT EMAILS DENGAN STATUS INDIKATOR */}
+                        <td style={{ padding: '20px', lineHeight: '1.5' }}>
+                          {d.recipients && d.recipients.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {d.recipients.sort((a, b) => a.signing_order - b.signing_order).map(r => {
+                                let statusIcon = '🕒';
+                                let badgeBg = '#f1f5f9';
+                                let textColor = '#64748b';
+
+                                if (r.status === 'Signed') {
+                                  statusIcon = '✅';
+                                  badgeBg = '#ecfdf5';
+                                  textColor = '#059669';
+                                } else if (r.status === 'Mailed') {
+                                  statusIcon = '⏳';
+                                  badgeBg = '#fffbeb';
+                                  textColor = '#d97706';
+                                } else if (r.status === 'Cancelled') {
+                                  statusIcon = '🚫';
+                                  badgeBg = '#fef2f2';
+                                  textColor = '#dc2626';
+                                }
+
+                                return (
+                                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                                    <span style={{ 
+                                      backgroundColor: badgeBg, 
+                                      padding: '2px 6px', 
+                                      borderRadius: '4px', 
+                                      fontSize: '11px', 
+                                      color: textColor, 
+                                      fontWeight: 'bold',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      minWidth: '24px',
+                                      justifyContent: 'center'
+                                    }} title={r.status}>
+                                      {statusIcon}
+                                    </span>
+                                    <span style={{ color: r.status === 'Mailed' ? '#1e293b' : '#64748b', fontWeight: r.status === 'Mailed' ? '600' : '400', textDecoration: r.status === 'Cancelled' ? 'line-through' : 'none' }}>
+                                      {r.email}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#64748b' }}>-</span>
+                          )}
                         </td>
+
                         <td style={{ padding: '20px', color: '#64748b' }}>
                           {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                         <td style={{ padding: '20px' }}>
-                          {/* STATUS BADGE DIPERKECIL & NO WRAP */}
                           {isDocCancelled ? (
                             <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '4px 10px', borderRadius: '9999px', fontWeight: '700', fontSize: '10px', border: '1px solid #fecaca', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               🚫 CANCELLED
@@ -645,8 +693,6 @@ function App() {
                           )}
                         </td>
                         <td style={{ padding: '20px', textAlign: 'center' }}>
-                          
-                          {/* ACTION BUTTON WITH DROPDOWN */}
                           <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} onMouseLeave={() => setActiveDropdown(null)}>
                             <button 
                               onClick={() => setActiveDropdown(activeDropdown === d.id ? null : d.id)}
@@ -690,7 +736,6 @@ function App() {
                               </div>
                             )}
                           </div>
-
                         </td>
                       </tr>
                     )
@@ -784,7 +829,7 @@ function App() {
           </div>
         )}
 
-        {/* AREA KONTROL: PLOTTING & SIGNING (Ditampilkan otomatis tanpa Menu Sidebar) */}
+        {/* AREA KONTROL: PLOTTING & SIGNING */}
         {mode !== 'upload' && mode !== 'dashboard' && doc && (
           <>
             <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
