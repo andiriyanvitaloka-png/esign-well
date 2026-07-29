@@ -1,0 +1,144 @@
+/* Menghilangkan pinggiran putih bawaan browser */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Mengatur agar layar membelah kiri dan kanan (Flexbox) */
+.app-container {
+  display: flex;
+  height: 100vh; /* Tingginya 100% mengikuti layar */
+}
+
+/* Desain Kotak Menu Kiri */
+.sidebar {
+  width: 250px;
+  background-color: #1e293b; /* Warna gelap */
+  color: white;
+  padding: 20px;
+}
+
+.sidebar ul {
+  list-style-type: none; /* Menghapus titik pada daftar */
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 15px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #334155; /* Garis pemisah tipis */
+}
+
+/* Desain Kotak Utama Kanan */
+.main-content {
+  flex: 1; /* Otomatis mengisi sisa ruang di layar */
+  background-color: #f8fafc; /* Warna abu-abu sangat terang */
+  padding: 40px;
+}
+/* --- Tambahan Desain Area Dokumen --- */
+
+/* Kotak putih info dokumen */
+.document-header {
+  display: flex;
+  justify-content: space-between; /* Memisahkan teks ke kiri, lingkaran ke kanan */
+  align-items: center;
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px; /* Sudut melengkung */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* Bayangan tipis ala Zoho */
+}
+
+/* Merapikan jarak teks info dokumen */
+.document-info h3 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.document-info p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.text-gray {
+  color: #64748b; /* Teks warna abu-abu untuk tanggal */
+}
+
+/* Membuat Lingkaran Progress 8% */
+.progress-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%; /* Mengubah kotak jadi lingkaran sempurna */
+  border: 12px solid #e0f2fe; /* Warna lingkaran dasar (biru sangat pudar) */
+  border-top-color: #38bdf8; /* Warna garis progress (biru terang) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: #0ea5e9;
+  flex-shrink: 0; /* BARIS BARU: Mencegah lingkaran jadi gepeng */
+  margin-left: 20px; /* BARIS BARU: Memberi jarak dari teks kiri */
+}
+/* --- Desain Status Penerima --- */
+.recipient-section {
+  margin-top: 40px;
+}
+
+.recipient-section h2 {
+  font-size: 18px;
+  color: #1e293b;
+}
+
+/* Kotak putih untuk tiap penerima */
+.recipient-card {
+  background-color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  border: 1px solid #f1f5f9;
+}
+
+/* Info nama dan email */
+.recipient-profile {
+  display: flex;
+  align-items: center;
+}
+
+.recipient-profile .number {
+  margin-right: 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.recipient-profile p {
+  margin: 0;
+}
+
+.recipient-profile .name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.recipient-profile .email {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Garis waktu status */
+.status-timeline {
+  display: flex;
+  gap: 40px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* Teks menjadi hijau tebal kalau status aktif */
+.status-step.active {
+  color: #10b981;
+  font-weight: bold;
+}
