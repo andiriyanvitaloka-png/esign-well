@@ -32,6 +32,7 @@ function App() {
   // Mode & UI States
   const [mode, setMode] = useState('dashboard')
   const [filter, setFilter] = useState('All') // Filter untuk Dashboard
+  const [searchQuery, setSearchQuery] = useState('') // Fitur Search Baru
   const [activeDropdown, setActiveDropdown] = useState(null) // State Dropdown
 
   // State Form Upload Baru
@@ -463,7 +464,7 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL (DIPERBARUI PERHITUNGAN FONT SIZE DINAMIS) ---
+  // --- DOWNLOAD PDF FINAL ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
@@ -492,18 +493,15 @@ function App() {
         
         const textToDraw = fieldInputs[f.id] || ''
         
-        // Logika Dinamis Font Size untuk PDF
         let finalFontSize = f.field_type === 'signature' ? 14 : 11;
         
         if (f.field_type === 'signature' && textToDraw) {
             const textWidth = helveticaRegular.widthOfTextAtSize(textToDraw, finalFontSize);
-            const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); // padding 6 kanan-kiri
+            const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); 
             
-            // Jika melebihi lebar, kecilkan proporsional
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
             }
-            // Pastikan font tidak lebih tinggi dari kotak
             finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.6);
         }
 
@@ -539,15 +537,31 @@ function App() {
     }
   }
 
-  // LOGIKA FILTER DOKUMEN DI DASHBOARD
+  // LOGIKA FILTER & SEARCH DOKUMEN DI DASHBOARD
   const filteredDocuments = allDocuments.filter((d) => {
     const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
     const isDocCancelled = d.status === 'CANCELLED'
 
-    if (filter === 'Completed') return isAllSigned
-    if (filter === 'Cancelled') return isDocCancelled
-    if (filter === 'In Progress') return !isAllSigned && !isDocCancelled
-    return true // 'All'
+    // 1. Cek berdasarkan Tab Status
+    let passFilter = true
+    if (filter === 'Completed') passFilter = isAllSigned
+    else if (filter === 'Cancelled') passFilter = isDocCancelled
+    else if (filter === 'In Progress') passFilter = !isAllSigned && !isDocCancelled
+
+    // 2. Cek berdasarkan Kata Kunci Pencarian (Search)
+    let passSearch = true
+    if (searchQuery.trim() !== '') {
+      const lowerQuery = searchQuery.toLowerCase()
+      // Cocokkan nama file dokumen
+      const matchName = d.filename.toLowerCase().includes(lowerQuery)
+      // Cocokkan alamat email recipients (jika ada salah satu yang cocok)
+      const matchEmail = d.recipients?.some(r => r.email.toLowerCase().includes(lowerQuery))
+      
+      passSearch = matchName || matchEmail
+    }
+
+    // Dokumen harus lolos kedua syarat di atas agar tampil
+    return passFilter && passSearch
   })
 
   const completedCount = recipients.filter(r => r.status === 'Signed').length
@@ -603,26 +617,54 @@ function App() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', overflowX: 'auto' }}>
-              {['All', 'In Progress', 'Completed', 'Cancelled'].map(f => (
-                <div
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{
-                    padding: '10px 4px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    color: filter === f ? '#3b82f6' : '#64748b',
-                    borderBottom: filter === f ? '2px solid #3b82f6' : '2px solid transparent',
-                    marginBottom: '-1px',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {f === 'All' ? 'Semua' : f}
+            {/* TAB FILTER OPTIONS & SEARCH BAR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', flexWrap: 'wrap', gap: '16px' }}>
+              
+              <div style={{ display: 'flex', gap: '24px', overflowX: 'auto' }}>
+                {['All', 'In Progress', 'Completed', 'Cancelled'].map(f => (
+                  <div
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    style={{
+                      padding: '10px 4px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      color: filter === f ? '#3b82f6' : '#64748b',
+                      borderBottom: filter === f ? '2px solid #3b82f6' : '2px solid transparent',
+                      marginBottom: '-1px',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {f === 'All' ? 'Semua' : f}
+                  </div>
+                ))}
+              </div>
+
+              {/* KOLOM PENCARIAN (SEARCH BAR) */}
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '14px' }}>🔍</span>
+                  <input 
+                    type="text" 
+                    placeholder="Cari nama dokumen / email..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px 8px 32px', 
+                      borderRadius: '8px', 
+                      border: '1px solid #cbd5e1', 
+                      outline: 'none', 
+                      fontSize: '13px', 
+                      width: '250px',
+                      color: '#334155',
+                      transition: 'all 0.2s'
+                    }}
+                  />
                 </div>
-              ))}
+              </div>
+
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -644,6 +686,7 @@ function App() {
                     return (
                       <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
                         <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', wordBreak: 'break-word' }}>{d.filename}</td>
+                        
                         <td style={{ padding: '16px', lineHeight: '1.5' }}>
                           {d.recipients && d.recipients.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
