@@ -463,7 +463,7 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL ---
+  // --- DOWNLOAD PDF FINAL (DIPERBARUI PERHITUNGAN FONT SIZE DINAMIS) ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
@@ -479,7 +479,6 @@ function App() {
         if (!pdfPage) return
 
         const { width: pdfWidth, height: pdfHeight } = pdfPage.getSize()
-
         const scaleRatio = pdfWidth / 800;
 
         const xPos = (f.x_position / 100) * pdfWidth
@@ -490,24 +489,37 @@ function App() {
         
         const boxHeightPdf = boxHeightPx * scaleRatio
         const boxWidthPdf = boxWidthPx * scaleRatio
-
-        const fontSize = f.field_type === 'signature' ? 14 : 11
         
         const textToDraw = fieldInputs[f.id] || ''
+        
+        // Logika Dinamis Font Size untuk PDF
+        let finalFontSize = f.field_type === 'signature' ? 14 : 11;
+        
+        if (f.field_type === 'signature' && textToDraw) {
+            const textWidth = helveticaRegular.widthOfTextAtSize(textToDraw, finalFontSize);
+            const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); // padding 6 kanan-kiri
+            
+            // Jika melebihi lebar, kecilkan proporsional
+            if (textWidth > maxTextWidthPdf) {
+                finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
+            }
+            // Pastikan font tidak lebih tinggi dari kotak
+            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.6);
+        }
 
         const textLines = textToDraw.split('\n').length
-        const totalTextHeight = textLines * (fontSize * 1.2)
-        const yPosCenter = yTop - (boxHeightPdf / 2) + (totalTextHeight / 2) - fontSize
+        const totalTextHeight = textLines * (finalFontSize * 1.2)
+        const yPosCenter = yTop - (boxHeightPdf / 2) + (totalTextHeight / 2) - finalFontSize
 
         if (textToDraw) {
           pdfPage.drawText(textToDraw, {
             x: xPos + (6 * scaleRatio), 
             y: yPosCenter, 
-            size: fontSize,
+            size: finalFontSize,
             font: helveticaRegular,
             color: f.field_type === 'signature' ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
             maxWidth: boxWidthPdf - (12 * scaleRatio), 
-            lineHeight: fontSize * 1.2
+            lineHeight: finalFontSize * 1.2
           })
         }
       })
@@ -550,7 +562,6 @@ function App() {
       {!isSignerOnlyView && (
         <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           
-          {/* HEADER SIDEBAR DENGAN LOGO */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
             <img 
               src="/logo.png" 
@@ -592,7 +603,6 @@ function App() {
               </button>
             </div>
 
-            {/* TAB FILTER OPTIONS */}
             <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', overflowX: 'auto' }}>
               {['All', 'In Progress', 'Completed', 'Cancelled'].map(f => (
                 <div
@@ -634,8 +644,6 @@ function App() {
                     return (
                       <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
                         <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', wordBreak: 'break-word' }}>{d.filename}</td>
-                        
-                        {/* UPDATE KOLOM RECIPIENT EMAILS AGAR WORD-BREAK */}
                         <td style={{ padding: '16px', lineHeight: '1.5' }}>
                           {d.recipients && d.recipients.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -679,7 +687,7 @@ function App() {
                                       color: r.status === 'Mailed' ? '#1e293b' : '#64748b', 
                                       fontWeight: r.status === 'Mailed' ? '600' : '400', 
                                       textDecoration: r.status === 'Cancelled' ? 'line-through' : 'none',
-                                      wordBreak: 'break-word', // <-- PENTING: Memastikan email panjang turun baris
+                                      wordBreak: 'break-word',
                                       overflowWrap: 'anywhere'
                                     }}>
                                       {r.email}
@@ -720,7 +728,6 @@ function App() {
                               Aksi ▼
                             </button>
 
-                            {/* UPDATE: POSISI DROPDOWN DIRATAKAN KE KANAN AGAR TIDAK MELUBER KELUAR TABEL */}
                             {activeDropdown === d.id && (
                               <div style={{ position: 'absolute', top: '100%', right: '0', marginTop: '4px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '150px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                 <button 
@@ -1044,6 +1051,19 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
+                            // LOGIKA UKURAN FONT DINAMIS UI
+                            const baseFontSizeUI = 18.66; // Setara 14pt
+                            const maxTextWidthUI = boxWidth - 12; // padding aman
+                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.45); // Estimasi proporsi font cursive
+                            let sigFontSizeUI = baseFontSizeUI;
+
+                            if (estTextWidthUI > maxTextWidthUI && currentTextValue.length > 0) {
+                                sigFontSizeUI = baseFontSizeUI * (maxTextWidthUI / estTextWidthUI);
+                            }
+                            
+                            // Pastikan tidak melebih tinggi kotak
+                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.6);
+
                             return (
                               <div 
                                 key={f.id || realIndex}
@@ -1089,13 +1109,13 @@ function App() {
                                         border: '1.5px solid #16a34a', 
                                         backgroundColor: 'rgba(220, 252, 231, 0.95)', 
                                         color: '#15803d', 
-                                        padding: boxHeight < 40 ? '2px 6px' : '6px 8px', 
+                                        padding: boxHeight < 40 ? '0' : '4px', 
                                         borderRadius: '6px', 
                                         display: 'flex', 
                                         flexDirection: 'column', 
                                         justifyContent: 'center', 
-                                        alignItems: 'flex-start', 
-                                        textAlign: 'left',
+                                        alignItems: 'center', 
+                                        textAlign: 'center',
                                         boxSizing: 'border-box', 
                                         overflow: 'hidden',
                                         position: 'relative'
@@ -1104,8 +1124,8 @@ function App() {
                                           <div style={{ 
                                             fontFamily: 'Dancing Script, cursive', 
                                             fontWeight: 'normal',
-                                            fontSize: `${Math.min(boxHeight * 0.45, 18)}px`, 
-                                            lineHeight: '1.2',
+                                            fontSize: `${sigFontSizeUI}px`, 
+                                            lineHeight: '1',
                                             whiteSpace: 'nowrap',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
@@ -1120,7 +1140,8 @@ function App() {
                                             wordBreak: 'break-word',
                                             whiteSpace: 'pre-wrap',
                                             width: '100%',
-                                            lineHeight: '1.1'
+                                            lineHeight: '1.1',
+                                            padding: '4px'
                                           }}>
                                             {currentTextValue}
                                           </div>
@@ -1134,7 +1155,7 @@ function App() {
                                       <div style={{ width: '100%', height: '100%' }}>
                                         {f.field_type === 'text' ? (
                                           <textarea 
-                                            placeholder={`Ketik kesimpulan di sini...`}
+                                            placeholder={`Ketik kesimpulan...`}
                                             value={fieldInputs[f.id] || ''}
                                             onChange={(e) => handleInputChange(f.id, e.target.value)}
                                             style={{ 
@@ -1156,17 +1177,18 @@ function App() {
                                         ) : (
                                           <input 
                                             type="text"
-                                            placeholder={`Ketik Tanda Tangan...`}
+                                            placeholder={`Ketik Sign...`}
                                             value={fieldInputs[f.id] || ''}
                                             onChange={(e) => handleInputChange(f.id, e.target.value)}
                                             style={{ 
                                               width: '100%', 
                                               height: '100%', 
-                                              padding: '4px', 
+                                              padding: boxHeight < 40 ? '0' : '4px', 
                                               border: '2px solid #3b82f6', 
                                               borderRadius: '6px', 
                                               fontFamily: 'Dancing Script, cursive', 
-                                              fontSize: `${Math.min(boxHeight * 0.45, 18)}px`, 
+                                              fontSize: `${sigFontSizeUI}px`, 
+                                              lineHeight: '1',
                                               backgroundColor: '#eff6ff', 
                                               textAlign: 'center', 
                                               fontWeight: 'normal',
