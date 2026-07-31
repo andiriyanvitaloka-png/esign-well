@@ -464,14 +464,28 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL ---
+  // --- DOWNLOAD PDF FINAL (DENGAN CUSTOM FONT ALEX BRUSH UNTUK PDF) ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
       const existingPdfBytes = await fetch(doc.file_url).then(res => res.arrayBuffer())
 
       const pdfDoc = await PDFDocument.load(existingPdfBytes)
+      
+      // Load Font Standar untuk Teks Biasa
       const helveticaRegular = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      
+      // Load Custom Font (Alex Brush) untuk Tanda Tangan dari GitHub Raw User Content
+      let alexBrushFont;
+      try {
+        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/alexbrush/AlexBrush-Regular.ttf';
+        const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
+        alexBrushFont = await pdfDoc.embedFont(fontBytes);
+      } catch (fontError) {
+        console.warn("Gagal memuat font Alex Brush untuk PDF, menggunakan font standar.");
+        alexBrushFont = helveticaRegular; // Fallback jika gagal fetch
+      }
+
       const pages = pdfDoc.getPages()
 
       fields.forEach(f => {
@@ -492,17 +506,19 @@ function App() {
         const boxWidthPdf = boxWidthPx * scaleRatio
         
         const textToDraw = fieldInputs[f.id] || ''
+        const isSig = f.field_type === 'signature'
+        const currentFont = isSig ? alexBrushFont : helveticaRegular;
         
-        let finalFontSize = f.field_type === 'signature' ? 14 : 11;
+        let finalFontSize = isSig ? 18 : 11;
         
-        if (f.field_type === 'signature' && textToDraw) {
-            const textWidth = helveticaRegular.widthOfTextAtSize(textToDraw, finalFontSize);
+        if (isSig && textToDraw) {
+            const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize);
             const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); 
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
             }
-            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.6);
+            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.7);
         }
 
         const textLines = textToDraw.split('\n').length
@@ -514,8 +530,8 @@ function App() {
             x: xPos + (6 * scaleRatio), 
             y: yPosCenter, 
             size: finalFontSize,
-            font: helveticaRegular,
-            color: f.field_type === 'signature' ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
+            font: currentFont,
+            color: isSig ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
             maxWidth: boxWidthPdf - (12 * scaleRatio), 
             lineHeight: finalFontSize * 1.2
           })
@@ -542,25 +558,19 @@ function App() {
     const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
     const isDocCancelled = d.status === 'CANCELLED'
 
-    // 1. Cek berdasarkan Tab Status
     let passFilter = true
     if (filter === 'Completed') passFilter = isAllSigned
     else if (filter === 'Cancelled') passFilter = isDocCancelled
     else if (filter === 'In Progress') passFilter = !isAllSigned && !isDocCancelled
 
-    // 2. Cek berdasarkan Kata Kunci Pencarian (Search)
     let passSearch = true
     if (searchQuery.trim() !== '') {
       const lowerQuery = searchQuery.toLowerCase()
-      // Cocokkan nama file dokumen
       const matchName = d.filename.toLowerCase().includes(lowerQuery)
-      // Cocokkan alamat email recipients (jika ada salah satu yang cocok)
       const matchEmail = d.recipients?.some(r => r.email.toLowerCase().includes(lowerQuery))
-      
       passSearch = matchName || matchEmail
     }
 
-    // Dokumen harus lolos kedua syarat di atas agar tampil
     return passFilter && passSearch
   })
 
@@ -572,6 +582,11 @@ function App() {
   return (
     <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: "'Inter', sans-serif" }}>
       
+      {/* IMPORT GOOGLE FONT ALEX BRUSH UNTUK UI */}
+      <style>
+        {`@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');`}
+      </style>
+
       {/* SIDEBAR NAVIGATION */}
       {!isSignerOnlyView && (
         <div className="sidebar" style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', padding: '24px', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
@@ -642,7 +657,7 @@ function App() {
                 ))}
               </div>
 
-              {/* KOLOM PENCARIAN (SEARCH BAR) */}
+              {/* KOLOM PENCARIAN */}
               <div style={{ marginBottom: '8px' }}>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '14px' }}>🔍</span>
@@ -1095,17 +1110,16 @@ function App() {
                             const currentTextValue = fieldInputs[f.id] || ''
 
                             // LOGIKA UKURAN FONT DINAMIS UI
-                            const baseFontSizeUI = 18.66; // Setara 14pt
-                            const maxTextWidthUI = boxWidth - 12; // padding aman
-                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.45); // Estimasi proporsi font cursive
+                            const baseFontSizeUI = 24; // Diperbesar sedikit karena Alex Brush cenderung terlihat kecil
+                            const maxTextWidthUI = boxWidth - 12; 
+                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.45); 
                             let sigFontSizeUI = baseFontSizeUI;
 
                             if (estTextWidthUI > maxTextWidthUI && currentTextValue.length > 0) {
                                 sigFontSizeUI = baseFontSizeUI * (maxTextWidthUI / estTextWidthUI);
                             }
                             
-                            // Pastikan tidak melebih tinggi kotak
-                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.6);
+                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
 
                             return (
                               <div 
@@ -1165,7 +1179,7 @@ function App() {
                                       }}>
                                         {f.field_type === 'signature' ? (
                                           <div style={{ 
-                                            fontFamily: 'Dancing Script, cursive', 
+                                            fontFamily: "'Alex Brush', cursive", // MENGGUNAKAN ALEX BRUSH
                                             fontWeight: 'normal',
                                             fontSize: `${sigFontSizeUI}px`, 
                                             lineHeight: '1',
@@ -1229,7 +1243,7 @@ function App() {
                                               padding: boxHeight < 40 ? '0' : '4px', 
                                               border: '2px solid #3b82f6', 
                                               borderRadius: '6px', 
-                                              fontFamily: 'Dancing Script, cursive', 
+                                              fontFamily: "'Alex Brush', cursive", // MENGGUNAKAN ALEX BRUSH
                                               fontSize: `${sigFontSizeUI}px`, 
                                               lineHeight: '1',
                                               backgroundColor: '#eff6ff', 
