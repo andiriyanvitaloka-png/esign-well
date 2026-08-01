@@ -48,7 +48,16 @@ function App() {
   const dragStartPos = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
-    loadDocumentData()
+    // BACA PARAMETER DARI URL SAAT WEB PERTAMA KALI DIBUKA
+    const queryParams = new URLSearchParams(window.location.search)
+    const urlDocId = queryParams.get('docId')
+    
+    if (urlDocId) {
+      loadDocumentData(urlDocId) // Load dokumen spesifik dari link email
+    } else {
+      loadDocumentData() // Load dokumen terakhir jika tidak ada link
+    }
+    
     fetchAllDocumentsList()
   }, [])
 
@@ -102,7 +111,8 @@ function App() {
 
     if (!window.confirm(`Kirim email pengingat (reminder) ke ${pendingSigner.name} (${pendingSigner.email})?`)) return;
 
-    sendSigningNotificationEmail(pendingSigner.name, pendingSigner.email, d.filename)
+    // Tambahkan d.id untuk mengirimkan link dokumen spesifik
+    sendSigningNotificationEmail(pendingSigner.name, pendingSigner.email, d.filename, d.id)
     alert(`Email pengingat berhasil dikirimkan ulang ke ${pendingSigner.name}! 🔔`)
   }
 
@@ -194,9 +204,10 @@ function App() {
     }
   }
 
-  // --- FUNGSI PENGIRIMAN EMAIL ---
-  const sendSigningNotificationEmail = (signerName, signerEmail, documentName) => {
-    const directSigningLink = `${window.location.origin}/?mode=signing&email=${encodeURIComponent(signerEmail)}`
+  // --- FUNGSI PENGIRIMAN EMAIL (UPDATED: Tambah docId parameter) ---
+  const sendSigningNotificationEmail = (signerName, signerEmail, documentName, docId) => {
+    // Masukkan docId ke dalam URL
+    const directSigningLink = `${window.location.origin}/?mode=signing&email=${encodeURIComponent(signerEmail)}&docId=${docId}`
 
     const templateParams = {
       to_name: signerName,
@@ -282,7 +293,8 @@ function App() {
       if (recError) throw recError
 
       if (signerList.length > 0) {
-        sendSigningNotificationEmail(signerList[0].name, signerList[0].email, file.name)
+        // Kirim doc.id saat upload baru
+        sendSigningNotificationEmail(signerList[0].name, signerList[0].email, file.name, newDoc.id)
       }
 
       alert("Berhasil mengunggah dokumen & mendaftarkan Signer baru! 🎉")
@@ -450,7 +462,8 @@ function App() {
 
       if (nextSigner) {
         await supabase.from('recipients').update({ status: 'Mailed' }).eq('id', nextSigner.id)
-        sendSigningNotificationEmail(nextSigner.name, nextSigner.email, doc.filename)
+        // Kirim doc.id untuk signer berikutnya
+        sendSigningNotificationEmail(nextSigner.name, nextSigner.email, doc.filename, doc.id)
       }
 
       alert(`Terima kasih ${activeSigner.name}, dokumen Anda berhasil disimpan! 🎉`)
@@ -472,10 +485,8 @@ function App() {
 
       const pdfDoc = await PDFDocument.load(existingPdfBytes)
       
-      // Load Font Standar untuk Teks Biasa
       const helveticaRegular = await pdfDoc.embedFont(StandardFonts.Helvetica)
       
-      // Load Custom Font (Alex Brush) untuk Tanda Tangan dari GitHub Raw User Content
       let alexBrushFont;
       try {
         const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/alexbrush/AlexBrush-Regular.ttf';
@@ -483,7 +494,7 @@ function App() {
         alexBrushFont = await pdfDoc.embedFont(fontBytes);
       } catch (fontError) {
         console.warn("Gagal memuat font Alex Brush untuk PDF, menggunakan font standar.");
-        alexBrushFont = helveticaRegular; // Fallback jika gagal fetch
+        alexBrushFont = helveticaRegular; 
       }
 
       const pages = pdfDoc.getPages()
@@ -1110,7 +1121,7 @@ function App() {
                             const currentTextValue = fieldInputs[f.id] || ''
 
                             // LOGIKA UKURAN FONT DINAMIS UI
-                            const baseFontSizeUI = 24; // Diperbesar sedikit karena Alex Brush cenderung terlihat kecil
+                            const baseFontSizeUI = 24; 
                             const maxTextWidthUI = boxWidth - 12; 
                             const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.45); 
                             let sigFontSizeUI = baseFontSizeUI;
@@ -1179,7 +1190,7 @@ function App() {
                                       }}>
                                         {f.field_type === 'signature' ? (
                                           <div style={{ 
-                                            fontFamily: "'Alex Brush', cursive", // MENGGUNAKAN ALEX BRUSH
+                                            fontFamily: "'Alex Brush', cursive", 
                                             fontWeight: 'normal',
                                             fontSize: `${sigFontSizeUI}px`, 
                                             lineHeight: '1',
@@ -1243,7 +1254,7 @@ function App() {
                                               padding: boxHeight < 40 ? '0' : '4px', 
                                               border: '2px solid #3b82f6', 
                                               borderRadius: '6px', 
-                                              fontFamily: "'Alex Brush', cursive", // MENGGUNAKAN ALEX BRUSH
+                                              fontFamily: "'Alex Brush', cursive", 
                                               fontSize: `${sigFontSizeUI}px`, 
                                               lineHeight: '1',
                                               backgroundColor: '#eff6ff', 
