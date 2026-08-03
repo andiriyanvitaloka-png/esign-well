@@ -204,7 +204,7 @@ function App() {
     }
   }
 
-  // --- FUNGSI PENGIRIMAN EMAIL (UPDATED: Tambah docId parameter) ---
+  // --- FUNGSI PENGIRIMAN EMAIL ---
   const sendSigningNotificationEmail = (signerName, signerEmail, documentName, docId) => {
     // Masukkan docId ke dalam URL
     const directSigningLink = `${window.location.origin}/?mode=signing&email=${encodeURIComponent(signerEmail)}&docId=${docId}`
@@ -520,11 +520,11 @@ function App() {
         const isSig = f.field_type === 'signature'
         const currentFont = isSig ? alexBrushFont : helveticaRegular;
         
-        let finalFontSize = isSig ? 18 : 11;
+        let finalFontSize = isSig ? 24 : 11; // Diperbesar base sizenya untuk Alex Brush
         
         if (isSig && textToDraw) {
             const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize);
-            const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); 
+            const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); // Margin aman
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
@@ -1120,10 +1120,11 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI
-                            const baseFontSizeUI = 24; 
-                            const maxTextWidthUI = boxWidth - 12; 
-                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.45); 
+                            // LOGIKA UKURAN FONT DINAMIS UI (DIPERBAIKI)
+                            const baseFontSizeUI = 28; // Sedikit dinaikkan agar lebih jelas
+                            const maxTextWidthUI = boxWidth - 16; // Padding aman
+                            // Estimasi untuk Alex Brush dinaikkan agar font lebih agresif mengecil saat panjang
+                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.55); 
                             let sigFontSizeUI = baseFontSizeUI;
 
                             if (estTextWidthUI > maxTextWidthUI && currentTextValue.length > 0) {
@@ -1196,8 +1197,9 @@ function App() {
                                             lineHeight: '1',
                                             whiteSpace: 'nowrap',
                                             overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            maxWidth: '100%'
+                                            // textOverflow: 'ellipsis' --> Dihapus agar nama tidak lagi menjadi titik-titik
+                                            maxWidth: '100%',
+                                            padding: '0 4px'
                                           }}>
                                             {currentTextValue}
                                           </div>
@@ -1251,7 +1253,7 @@ function App() {
                                             style={{ 
                                               width: '100%', 
                                               height: '100%', 
-                                              padding: boxHeight < 40 ? '0' : '4px', 
+                                              padding: boxHeight < 40 ? '0 4px' : '4px', 
                                               border: '2px solid #3b82f6', 
                                               borderRadius: '6px', 
                                               fontFamily: "'Alex Brush', cursive", 
