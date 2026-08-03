@@ -519,7 +519,8 @@ function App() {
         let finalFontSize = isSig ? 24 : 11;
         
         if (isSig && textToDraw) {
-            const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize);
+            // Memberikan toleransi tambahan 10% di PDF karena bounding box Alex Brush kadang meluber
+            const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize) * 1.1; 
             const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); 
             
             if (textWidth > maxTextWidthPdf) {
@@ -1116,20 +1117,20 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI (SANGAT PRESISI)
+                            // LOGIKA UKURAN FONT DINAMIS UI (SANGAT PRESISI UNTUK ALEX BRUSH)
                             const baseFontSizeUI = 26; 
-                            const maxTextWidthUI = boxWidth - 12; 
+                            const maxTextWidthUI = boxWidth - 16; 
                             
                             let estTextWidthUI = 0;
                             // Menghitung estimasi lebar berdasarkan huruf kapital vs huruf kecil
                             for (let j = 0; j < currentTextValue.length; j++) {
                                 const char = currentTextValue[j];
                                 if (char === ' ') {
-                                    estTextWidthUI += baseFontSizeUI * 0.25;
-                                } else if (char === char.toUpperCase() && char.match(/[a-z]/i)) {
-                                    estTextWidthUI += baseFontSizeUI * 0.65; // Huruf kapital lebih memakan ruang
+                                    estTextWidthUI += baseFontSizeUI * 0.3;
+                                } else if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
+                                    estTextWidthUI += baseFontSizeUI * 0.9; // Huruf kapital Alex Brush itu sangat lebar!
                                 } else {
-                                    estTextWidthUI += baseFontSizeUI * 0.35; // Huruf kecil alex brush sangat ramping
+                                    estTextWidthUI += baseFontSizeUI * 0.48; // Huruf kecilnya juga cukup memakan tempat
                                 }
                             }
 
@@ -1139,8 +1140,8 @@ function App() {
                             }
                             
                             // Pembatasan agar tidak lebih tinggi dari kotak dan tidak terlalu kecil
-                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.75);
-                            sigFontSizeUI = Math.max(sigFontSizeUI, 12); // Batas minimal terbaca
+                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
+                            sigFontSizeUI = Math.max(sigFontSizeUI, 8); // Boleh sekecil 8px agar tidak kepotong
 
                             return (
                               <div 
@@ -1195,7 +1196,7 @@ function App() {
                                         alignItems: 'center', 
                                         textAlign: 'center',
                                         boxSizing: 'border-box', 
-                                        overflow: 'hidden', // Diganti kembali menjadi hidden yang aman
+                                        overflow: 'hidden', 
                                         position: 'relative'
                                       }}>
                                         {f.field_type === 'signature' ? (
@@ -1203,10 +1204,10 @@ function App() {
                                             fontFamily: "'Alex Brush', cursive", 
                                             fontWeight: 'normal',
                                             fontSize: `${sigFontSizeUI}px`, 
-                                            lineHeight: '1',
+                                            lineHeight: '1.2',
                                             whiteSpace: 'nowrap',
                                             maxWidth: '100%',
-                                            padding: '0 4px'
+                                            padding: '2px 4px'
                                           }}>
                                             {currentTextValue}
                                           </div>
@@ -1265,7 +1266,7 @@ function App() {
                                               borderRadius: '6px', 
                                               fontFamily: "'Alex Brush', cursive", 
                                               fontSize: `${sigFontSizeUI}px`, 
-                                              lineHeight: '1',
+                                              lineHeight: '1.2',
                                               backgroundColor: '#eff6ff', 
                                               textAlign: 'center', 
                                               fontWeight: 'normal',
