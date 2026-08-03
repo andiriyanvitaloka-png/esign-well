@@ -520,7 +520,7 @@ function App() {
         
         if (isSig && textToDraw) {
             const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize);
-            const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); // Margin aman diperlebar
+            const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); 
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
@@ -1116,19 +1116,31 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI (DIOPTIMALKAN KEMBALI)
-                            const baseFontSizeUI = 28; 
-                            const maxTextWidthUI = boxWidth - 16; 
+                            // LOGIKA UKURAN FONT DINAMIS UI (SANGAT PRESISI)
+                            const baseFontSizeUI = 26; 
+                            const maxTextWidthUI = boxWidth - 12; 
                             
-                            // Hitungan dikalikan 0.6 agar lebih aman dan tidak terpotong
-                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.6); 
-                            let sigFontSizeUI = baseFontSizeUI;
+                            let estTextWidthUI = 0;
+                            // Menghitung estimasi lebar berdasarkan huruf kapital vs huruf kecil
+                            for (let j = 0; j < currentTextValue.length; j++) {
+                                const char = currentTextValue[j];
+                                if (char === ' ') {
+                                    estTextWidthUI += baseFontSizeUI * 0.25;
+                                } else if (char === char.toUpperCase() && char.match(/[a-z]/i)) {
+                                    estTextWidthUI += baseFontSizeUI * 0.65; // Huruf kapital lebih memakan ruang
+                                } else {
+                                    estTextWidthUI += baseFontSizeUI * 0.35; // Huruf kecil alex brush sangat ramping
+                                }
+                            }
 
+                            let sigFontSizeUI = baseFontSizeUI;
                             if (estTextWidthUI > maxTextWidthUI && currentTextValue.length > 0) {
                                 sigFontSizeUI = baseFontSizeUI * (maxTextWidthUI / estTextWidthUI);
                             }
                             
-                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
+                            // Pembatasan agar tidak lebih tinggi dari kotak dan tidak terlalu kecil
+                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.75);
+                            sigFontSizeUI = Math.max(sigFontSizeUI, 12); // Batas minimal terbaca
 
                             return (
                               <div 
@@ -1183,7 +1195,7 @@ function App() {
                                         alignItems: 'center', 
                                         textAlign: 'center',
                                         boxSizing: 'border-box', 
-                                        overflow: 'hidden',
+                                        overflow: 'hidden', // Diganti kembali menjadi hidden yang aman
                                         position: 'relative'
                                       }}>
                                         {f.field_type === 'signature' ? (
@@ -1193,7 +1205,6 @@ function App() {
                                             fontSize: `${sigFontSizeUI}px`, 
                                             lineHeight: '1',
                                             whiteSpace: 'nowrap',
-                                            // OVERFLOW DIHILANGKAN AGAR TIDAK TITIK-TITIK & TIDAK TERPOTONG
                                             maxWidth: '100%',
                                             padding: '0 4px'
                                           }}>
