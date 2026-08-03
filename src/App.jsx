@@ -111,7 +111,6 @@ function App() {
 
     if (!window.confirm(`Kirim email pengingat (reminder) ke ${pendingSigner.name} (${pendingSigner.email})?`)) return;
 
-    // Tambahkan d.id untuk mengirimkan link dokumen spesifik
     sendSigningNotificationEmail(pendingSigner.name, pendingSigner.email, d.filename, d.id)
     alert(`Email pengingat berhasil dikirimkan ulang ke ${pendingSigner.name}! 🔔`)
   }
@@ -206,7 +205,6 @@ function App() {
 
   // --- FUNGSI PENGIRIMAN EMAIL ---
   const sendSigningNotificationEmail = (signerName, signerEmail, documentName, docId) => {
-    // Masukkan docId ke dalam URL
     const directSigningLink = `${window.location.origin}/?mode=signing&email=${encodeURIComponent(signerEmail)}&docId=${docId}`
 
     const templateParams = {
@@ -293,7 +291,6 @@ function App() {
       if (recError) throw recError
 
       if (signerList.length > 0) {
-        // Kirim doc.id saat upload baru
         sendSigningNotificationEmail(signerList[0].name, signerList[0].email, file.name, newDoc.id)
       }
 
@@ -462,7 +459,6 @@ function App() {
 
       if (nextSigner) {
         await supabase.from('recipients').update({ status: 'Mailed' }).eq('id', nextSigner.id)
-        // Kirim doc.id untuk signer berikutnya
         sendSigningNotificationEmail(nextSigner.name, nextSigner.email, doc.filename, doc.id)
       }
 
@@ -520,11 +516,11 @@ function App() {
         const isSig = f.field_type === 'signature'
         const currentFont = isSig ? alexBrushFont : helveticaRegular;
         
-        let finalFontSize = isSig ? 24 : 11; // Diperbesar base sizenya untuk Alex Brush
+        let finalFontSize = isSig ? 24 : 11;
         
         if (isSig && textToDraw) {
             const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize);
-            const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); // Margin aman
+            const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); // Margin aman diperlebar
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
@@ -1120,11 +1116,12 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI (DIPERBAIKI)
-                            const baseFontSizeUI = 28; // Sedikit dinaikkan agar lebih jelas
-                            const maxTextWidthUI = boxWidth - 16; // Padding aman
-                            // Estimasi untuk Alex Brush dinaikkan agar font lebih agresif mengecil saat panjang
-                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.55); 
+                            // LOGIKA UKURAN FONT DINAMIS UI (DIOPTIMALKAN KEMBALI)
+                            const baseFontSizeUI = 28; 
+                            const maxTextWidthUI = boxWidth - 16; 
+                            
+                            // Hitungan dikalikan 0.6 agar lebih aman dan tidak terpotong
+                            const estTextWidthUI = currentTextValue.length * (baseFontSizeUI * 0.6); 
                             let sigFontSizeUI = baseFontSizeUI;
 
                             if (estTextWidthUI > maxTextWidthUI && currentTextValue.length > 0) {
@@ -1196,8 +1193,7 @@ function App() {
                                             fontSize: `${sigFontSizeUI}px`, 
                                             lineHeight: '1',
                                             whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            // textOverflow: 'ellipsis' --> Dihapus agar nama tidak lagi menjadi titik-titik
+                                            // OVERFLOW DIHILANGKAN AGAR TIDAK TITIK-TITIK & TIDAK TERPOTONG
                                             maxWidth: '100%',
                                             padding: '0 4px'
                                           }}>
