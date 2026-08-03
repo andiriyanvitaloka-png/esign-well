@@ -111,7 +111,6 @@ function App() {
 
     if (!window.confirm(`Kirim email pengingat (reminder) ke ${pendingSigner.name} (${pendingSigner.email})?`)) return;
 
-    // Tambahkan d.id untuk mengirimkan link dokumen spesifik
     sendSigningNotificationEmail(pendingSigner.name, pendingSigner.email, d.filename, d.id)
     alert(`Email pengingat berhasil dikirimkan ulang ke ${pendingSigner.name}! 🔔`)
   }
@@ -292,7 +291,6 @@ function App() {
       if (recError) throw recError
 
       if (signerList.length > 0) {
-        // Kirim doc.id saat upload baru
         sendSigningNotificationEmail(signerList[0].name, signerList[0].email, file.name, newDoc.id)
       }
 
@@ -521,14 +519,13 @@ function App() {
         let finalFontSize = isSig ? 24 : 11;
         
         if (isSig && textToDraw) {
-            // Ukuran teks tepat untuk PDF menggunakan currentFont asli
             const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
-            const maxTextWidthPdf = boxWidthPdf - (8 * scaleRatio); // Margin aman sedikit diperkecil agar memaksimalkan ruang
+            const maxTextWidthPdf = boxWidthPdf - (8 * scaleRatio);
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
             }
-            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.75); // Bisa sedikit lebih tinggi memenuhi kotak
+            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.75); 
         }
 
         const textLines = textToDraw.split('\n').length
@@ -1119,20 +1116,20 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI
-                            const baseFontSizeUI = 28; 
-                            const maxTextWidthUI = boxWidth - 8; // Margin aman dikurangi agar lebih bisa mepet kotak
+                            // LOGIKA UKURAN FONT DINAMIS UI (KALIBRASI FINAL)
+                            const baseFontSizeUI = 26; 
+                            const maxTextWidthUI = boxWidth - 12; // Padding aman 12px
                             
                             let estTextWidthUI = 0;
-                            // Menghitung estimasi lebar berdasarkan huruf kapital vs huruf kecil untuk UI
+                            // Menghitung estimasi lebar berdasarkan karakter spesifik (Kompensasi presisi Alex Brush)
                             for (let j = 0; j < currentTextValue.length; j++) {
                                 const char = currentTextValue[j];
                                 if (char === ' ') {
-                                    estTextWidthUI += baseFontSizeUI * 0.2;
+                                    estTextWidthUI += baseFontSizeUI * 0.25;
                                 } else if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
-                                    estTextWidthUI += baseFontSizeUI * 0.5; // Estimasi huruf besar Alex Brush di-fine tune 
+                                    estTextWidthUI += baseFontSizeUI * 0.65; // Kapital Alex Brush butuh ruang
                                 } else {
-                                    estTextWidthUI += baseFontSizeUI * 0.28; // Huruf kecil Alex Brush diturunkan estimasinya agar tidak cepat mengecil
+                                    estTextWidthUI += baseFontSizeUI * 0.38; // Huruf kecil proporsional
                                 }
                             }
 
@@ -1141,9 +1138,9 @@ function App() {
                                 sigFontSizeUI = baseFontSizeUI * (maxTextWidthUI / estTextWidthUI);
                             }
                             
-                            // Pembatasan agar tidak lebih tinggi dari kotak dan tidak terlalu kecil
-                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.8);
-                            sigFontSizeUI = Math.max(sigFontSizeUI, 10); 
+                            // Pembatasan tinggi agar tidak menabrak batas atas bawah
+                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
+                            sigFontSizeUI = Math.max(sigFontSizeUI, 12); // Batas minimal agar masih bisa dibaca
 
                             return (
                               <div 
