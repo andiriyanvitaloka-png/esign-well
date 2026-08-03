@@ -520,7 +520,7 @@ function App() {
         
         if (isSig && textToDraw) {
             const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
-            const maxTextWidthPdf = boxWidthPdf - (8 * scaleRatio);
+            const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); 
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
@@ -534,12 +534,12 @@ function App() {
 
         if (textToDraw) {
           pdfPage.drawText(textToDraw, {
-            x: xPos + (4 * scaleRatio), 
+            x: xPos + (6 * scaleRatio), 
             y: yPosCenter, 
             size: finalFontSize,
             font: currentFont,
             color: isSig ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
-            maxWidth: boxWidthPdf - (8 * scaleRatio), 
+            maxWidth: boxWidthPdf - (12 * scaleRatio), 
             lineHeight: finalFontSize * 1.2
           })
         }
@@ -1118,18 +1118,18 @@ function App() {
 
                             // LOGIKA UKURAN FONT DINAMIS UI (KALIBRASI FINAL)
                             const baseFontSizeUI = 26; 
-                            const maxTextWidthUI = boxWidth - 12; // Padding aman 12px
+                            const maxTextWidthUI = boxWidth - 24; // Padding aman diperlebar jadi 24px
                             
                             let estTextWidthUI = 0;
                             // Menghitung estimasi lebar berdasarkan karakter spesifik (Kompensasi presisi Alex Brush)
                             for (let j = 0; j < currentTextValue.length; j++) {
                                 const char = currentTextValue[j];
                                 if (char === ' ') {
-                                    estTextWidthUI += baseFontSizeUI * 0.25;
+                                    estTextWidthUI += baseFontSizeUI * 0.3;
                                 } else if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
-                                    estTextWidthUI += baseFontSizeUI * 0.65; // Kapital Alex Brush butuh ruang
+                                    estTextWidthUI += baseFontSizeUI * 0.75; // Kapital Alex Brush dinaikkan estimasinya
                                 } else {
-                                    estTextWidthUI += baseFontSizeUI * 0.38; // Huruf kecil proporsional
+                                    estTextWidthUI += baseFontSizeUI * 0.45; // Huruf kecil dinaikkan estimasinya
                                 }
                             }
 
@@ -1140,7 +1140,7 @@ function App() {
                             
                             // Pembatasan tinggi agar tidak menabrak batas atas bawah
                             sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
-                            sigFontSizeUI = Math.max(sigFontSizeUI, 12); // Batas minimal agar masih bisa dibaca
+                            sigFontSizeUI = Math.max(sigFontSizeUI, 10); // Batas minimal
 
                             return (
                               <div 
@@ -1206,7 +1206,7 @@ function App() {
                                             lineHeight: '1.2',
                                             whiteSpace: 'nowrap',
                                             maxWidth: '100%',
-                                            padding: '2px 4px'
+                                            padding: '2px 8px' // Padding dikembalikan ke 8px untuk ruang ekor huruf
                                           }}>
                                             {currentTextValue}
                                           </div>
@@ -1260,7 +1260,7 @@ function App() {
                                             style={{ 
                                               width: '100%', 
                                               height: '100%', 
-                                              padding: boxHeight < 40 ? '0 4px' : '4px', 
+                                              padding: boxHeight < 40 ? '0 8px' : '4px 8px', // Padding dinaikkan
                                               border: '2px solid #3b82f6', 
                                               borderRadius: '6px', 
                                               fontFamily: "'Alex Brush', cursive", 
