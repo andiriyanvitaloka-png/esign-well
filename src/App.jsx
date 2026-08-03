@@ -111,6 +111,7 @@ function App() {
 
     if (!window.confirm(`Kirim email pengingat (reminder) ke ${pendingSigner.name} (${pendingSigner.email})?`)) return;
 
+    // Tambahkan d.id untuk mengirimkan link dokumen spesifik
     sendSigningNotificationEmail(pendingSigner.name, pendingSigner.email, d.filename, d.id)
     alert(`Email pengingat berhasil dikirimkan ulang ke ${pendingSigner.name}! 🔔`)
   }
@@ -291,6 +292,7 @@ function App() {
       if (recError) throw recError
 
       if (signerList.length > 0) {
+        // Kirim doc.id saat upload baru
         sendSigningNotificationEmail(signerList[0].name, signerList[0].email, file.name, newDoc.id)
       }
 
@@ -519,14 +521,14 @@ function App() {
         let finalFontSize = isSig ? 24 : 11;
         
         if (isSig && textToDraw) {
-            // Memberikan toleransi tambahan 10% di PDF karena bounding box Alex Brush kadang meluber
-            const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize) * 1.1; 
-            const maxTextWidthPdf = boxWidthPdf - (16 * scaleRatio); 
+            // Ukuran teks tepat untuk PDF menggunakan currentFont asli
+            const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
+            const maxTextWidthPdf = boxWidthPdf - (8 * scaleRatio); // Margin aman sedikit diperkecil agar memaksimalkan ruang
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
             }
-            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.7);
+            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.75); // Bisa sedikit lebih tinggi memenuhi kotak
         }
 
         const textLines = textToDraw.split('\n').length
@@ -535,12 +537,12 @@ function App() {
 
         if (textToDraw) {
           pdfPage.drawText(textToDraw, {
-            x: xPos + (6 * scaleRatio), 
+            x: xPos + (4 * scaleRatio), 
             y: yPosCenter, 
             size: finalFontSize,
             font: currentFont,
             color: isSig ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
-            maxWidth: boxWidthPdf - (12 * scaleRatio), 
+            maxWidth: boxWidthPdf - (8 * scaleRatio), 
             lineHeight: finalFontSize * 1.2
           })
         }
@@ -1117,20 +1119,20 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI (SANGAT PRESISI UNTUK ALEX BRUSH)
-                            const baseFontSizeUI = 26; 
-                            const maxTextWidthUI = boxWidth - 16; 
+                            // LOGIKA UKURAN FONT DINAMIS UI
+                            const baseFontSizeUI = 28; 
+                            const maxTextWidthUI = boxWidth - 8; // Margin aman dikurangi agar lebih bisa mepet kotak
                             
                             let estTextWidthUI = 0;
-                            // Menghitung estimasi lebar berdasarkan huruf kapital vs huruf kecil
+                            // Menghitung estimasi lebar berdasarkan huruf kapital vs huruf kecil untuk UI
                             for (let j = 0; j < currentTextValue.length; j++) {
                                 const char = currentTextValue[j];
                                 if (char === ' ') {
-                                    estTextWidthUI += baseFontSizeUI * 0.3;
+                                    estTextWidthUI += baseFontSizeUI * 0.2;
                                 } else if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
-                                    estTextWidthUI += baseFontSizeUI * 0.9; // Huruf kapital Alex Brush itu sangat lebar!
+                                    estTextWidthUI += baseFontSizeUI * 0.5; // Estimasi huruf besar Alex Brush di-fine tune 
                                 } else {
-                                    estTextWidthUI += baseFontSizeUI * 0.48; // Huruf kecilnya juga cukup memakan tempat
+                                    estTextWidthUI += baseFontSizeUI * 0.28; // Huruf kecil Alex Brush diturunkan estimasinya agar tidak cepat mengecil
                                 }
                             }
 
@@ -1140,8 +1142,8 @@ function App() {
                             }
                             
                             // Pembatasan agar tidak lebih tinggi dari kotak dan tidak terlalu kecil
-                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
-                            sigFontSizeUI = Math.max(sigFontSizeUI, 8); // Boleh sekecil 8px agar tidak kepotong
+                            sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.8);
+                            sigFontSizeUI = Math.max(sigFontSizeUI, 10); 
 
                             return (
                               <div 
