@@ -3,6 +3,7 @@ import './App.css'
 import { supabase } from './supabase'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit' // IMPORT MODUL FONTKIT BARU
 import emailjs from '@emailjs/browser'
 
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -473,7 +474,7 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL (DENGAN CUSTOM FONT ALEX BRUSH UNTUK PDF) ---
+  // --- DOWNLOAD PDF FINAL (DIPERBAIKI 100% UNTUK FONT & WORD-WRAP) ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
@@ -481,11 +482,15 @@ function App() {
 
       const pdfDoc = await PDFDocument.load(existingPdfBytes)
       
+      // REGISTER FONTKIT AGAR PDF-LIB BISA BACA FONT CUSTOM!
+      pdfDoc.registerFontkit(fontkit);
+      
       const helveticaRegular = await pdfDoc.embedFont(StandardFonts.Helvetica)
       
       let alexBrushFont;
       try {
-        const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/alexbrush/AlexBrush-Regular.ttf';
+        // Menggunakan JSdelivr yang dijamin mendukung CORS headers
+        const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/alexbrush/AlexBrush-Regular.ttf';
         const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
         alexBrushFont = await pdfDoc.embedFont(fontBytes);
       } catch (fontError) {
@@ -517,15 +522,20 @@ function App() {
         const currentFont = isSig ? alexBrushFont : helveticaRegular;
         
         let finalFontSize = isSig ? 24 : 11;
+        let textWidth = 0;
         
         if (isSig && textToDraw) {
-            const textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
-            const maxTextWidthPdf = boxWidthPdf - (12 * scaleRatio); 
+            textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
+            const maxTextWidthPdf = boxWidthPdf - (8 * scaleRatio);
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
+                textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); // Hitung ulang setelah dikecilkan
             }
-            finalFontSize = Math.min(finalFontSize, boxHeightPdf * 0.75); 
+            if (finalFontSize > boxHeightPdf * 0.75) {
+                finalFontSize = boxHeightPdf * 0.75;
+                textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); // Hitung ulang
+            }
         }
 
         const textLines = textToDraw.split('\n').length
@@ -533,15 +543,29 @@ function App() {
         const yPosCenter = yTop - (boxHeightPdf / 2) + (totalTextHeight / 2) - finalFontSize
 
         if (textToDraw) {
-          pdfPage.drawText(textToDraw, {
-            x: xPos + (6 * scaleRatio), 
-            y: yPosCenter, 
-            size: finalFontSize,
-            font: currentFont,
-            color: isSig ? rgb(0.1, 0.25, 0.7) : rgb(0.1, 0.1, 0.1),
-            maxWidth: boxWidthPdf - (12 * scaleRatio), 
-            lineHeight: finalFontSize * 1.2
-          })
+          if (isSig) {
+            // KHUSUS TANDA TANGAN: Rata Tengah dan TANPA maxWidth agar tidak terpotong turun baris!
+            const xOffset = xPos + (boxWidthPdf - textWidth) / 2;
+            pdfPage.drawText(textToDraw, {
+              x: xOffset, 
+              y: yPosCenter, 
+              size: finalFontSize,
+              font: currentFont,
+              color: rgb(0.1, 0.25, 0.7),
+              // NO MAX WIDTH HERE!
+            })
+          } else {
+            // Teks Biasa
+            pdfPage.drawText(textToDraw, {
+              x: xPos + (4 * scaleRatio), 
+              y: yPosCenter, 
+              size: finalFontSize,
+              font: currentFont,
+              color: rgb(0.1, 0.1, 0.1),
+              maxWidth: boxWidthPdf - (8 * scaleRatio), 
+              lineHeight: finalFontSize * 1.2
+            })
+          }
         }
       })
 
@@ -1116,20 +1140,19 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI (KALIBRASI FINAL)
+                            // LOGIKA UKURAN FONT DINAMIS UI 
                             const baseFontSizeUI = 26; 
-                            const maxTextWidthUI = boxWidth - 24; // Padding aman diperlebar jadi 24px
+                            const maxTextWidthUI = boxWidth - 12; 
                             
                             let estTextWidthUI = 0;
-                            // Menghitung estimasi lebar berdasarkan karakter spesifik (Kompensasi presisi Alex Brush)
                             for (let j = 0; j < currentTextValue.length; j++) {
                                 const char = currentTextValue[j];
                                 if (char === ' ') {
-                                    estTextWidthUI += baseFontSizeUI * 0.3;
+                                    estTextWidthUI += baseFontSizeUI * 0.25;
                                 } else if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
-                                    estTextWidthUI += baseFontSizeUI * 0.75; // Kapital Alex Brush dinaikkan estimasinya
+                                    estTextWidthUI += baseFontSizeUI * 0.65; 
                                 } else {
-                                    estTextWidthUI += baseFontSizeUI * 0.45; // Huruf kecil dinaikkan estimasinya
+                                    estTextWidthUI += baseFontSizeUI * 0.38; 
                                 }
                             }
 
@@ -1138,9 +1161,8 @@ function App() {
                                 sigFontSizeUI = baseFontSizeUI * (maxTextWidthUI / estTextWidthUI);
                             }
                             
-                            // Pembatasan tinggi agar tidak menabrak batas atas bawah
                             sigFontSizeUI = Math.min(sigFontSizeUI, boxHeight * 0.7);
-                            sigFontSizeUI = Math.max(sigFontSizeUI, 10); // Batas minimal
+                            sigFontSizeUI = Math.max(sigFontSizeUI, 12); 
 
                             return (
                               <div 
@@ -1179,25 +1201,25 @@ function App() {
                                     <div style={{ fontSize: '10px', opacity: 0.9 }}>Signer {f.signing_order}: {f.recipient_email}</div>
                                   </div>
                                 ) : (
-                                  <div style={{ width: '100%', height: '100%' }}>
+                                  <div style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    border: '1.5px solid #16a34a', 
+                                    backgroundColor: 'rgba(220, 252, 231, 0.95)', 
+                                    color: '#15803d', 
+                                    padding: boxHeight < 40 ? '0' : '4px', 
+                                    borderRadius: '6px', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    justifyContent: 'center', 
+                                    alignItems: f.field_type === 'text' ? 'flex-start' : 'center', 
+                                    textAlign: f.field_type === 'text' ? 'left' : 'center', 
+                                    boxSizing: 'border-box', 
+                                    overflow: 'hidden', 
+                                    position: 'relative'
+                                  }}>
                                     {isSigned ? (
-                                      <div style={{ 
-                                        width: '100%', 
-                                        height: '100%', 
-                                        border: '1.5px solid #16a34a', 
-                                        backgroundColor: 'rgba(220, 252, 231, 0.95)', 
-                                        color: '#15803d', 
-                                        padding: boxHeight < 40 ? '0' : '4px', 
-                                        borderRadius: '6px', 
-                                        display: 'flex', 
-                                        flexDirection: 'column', 
-                                        justifyContent: 'center', 
-                                        alignItems: 'center', 
-                                        textAlign: 'center',
-                                        boxSizing: 'border-box', 
-                                        overflow: 'hidden', 
-                                        position: 'relative'
-                                      }}>
+                                      <>
                                         {f.field_type === 'signature' ? (
                                           <div style={{ 
                                             fontFamily: "'Alex Brush', cursive", 
@@ -1206,7 +1228,7 @@ function App() {
                                             lineHeight: '1.2',
                                             whiteSpace: 'nowrap',
                                             maxWidth: '100%',
-                                            padding: '2px 8px' // Padding dikembalikan ke 8px untuk ruang ekor huruf
+                                            padding: '2px 4px'
                                           }}>
                                             {currentTextValue}
                                           </div>
@@ -1218,7 +1240,8 @@ function App() {
                                             whiteSpace: 'pre-wrap',
                                             width: '100%',
                                             lineHeight: '1.1',
-                                            padding: '4px'
+                                            padding: '4px',
+                                            textAlign: 'left'
                                           }}>
                                             {currentTextValue}
                                           </div>
@@ -1227,7 +1250,7 @@ function App() {
                                         {boxHeight >= 40 && (
                                           <div style={{ fontSize: '9px', color: '#166534', fontWeight: 'bold', position: 'absolute', bottom: '4px', right: '6px' }}>✓ Signed</div>
                                         )}
-                                      </div>
+                                      </>
                                     ) : !isCancelled && isMyField && activeSigner?.status === 'Mailed' ? (
                                       <div style={{ width: '100%', height: '100%' }}>
                                         {f.field_type === 'text' ? (
@@ -1248,7 +1271,8 @@ function App() {
                                               backgroundColor: '#eff6ff', 
                                               boxSizing: 'border-box',
                                               outline: 'none',
-                                              boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)'
+                                              boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)',
+                                              textAlign: 'left'
                                             }}
                                           />
                                         ) : (
@@ -1260,7 +1284,7 @@ function App() {
                                             style={{ 
                                               width: '100%', 
                                               height: '100%', 
-                                              padding: boxHeight < 40 ? '0 8px' : '4px 8px', // Padding dinaikkan
+                                              padding: boxHeight < 40 ? '0 4px' : '4px', 
                                               border: '2px solid #3b82f6', 
                                               borderRadius: '6px', 
                                               fontFamily: "'Alex Brush', cursive", 
