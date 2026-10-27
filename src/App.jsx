@@ -268,12 +268,20 @@ function App() {
         
         if (linksArray.length > 0) {
           const formattedLinks = linksArray.map((line, index) => {
+            let title = `Bagian Video ${index + 1}`;
+            let url = line;
+
             if (line.includes('|')) {
               const parts = line.split('|');
-              return { title: parts[0].trim(), url: parts[1].trim() };
-            } else {
-              return { title: `Bagian Video ${index + 1}`, url: line };
+              title = parts[0].trim();
+              url = parts.slice(1).join('|').trim(); 
             }
+
+            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+              url = 'https://' + url;
+            }
+
+            return { title, url };
           });
           finalVideoUrlString = JSON.stringify(formattedLinks);
         }
@@ -320,7 +328,6 @@ function App() {
     }
   }
 
-  // --- LOGIKA PLOTTING ---
   const handleAddBox = (pageNo) => {
     const signerAktif = recipients.find(r => r.id === selectedRecipientId)
     if (!signerAktif) {
@@ -485,7 +492,6 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
@@ -589,7 +595,6 @@ function App() {
     }
   }
 
-  // LOGIKA FILTER & SEARCH DOKUMEN DI DASHBOARD
   const filteredDocuments = allDocuments.filter((d) => {
     const isAllSigned = d.recipients && d.recipients.length > 0 && d.recipients.every(r => r.status === 'Signed')
     const isDocCancelled = d.status === 'CANCELLED'
@@ -615,7 +620,6 @@ function App() {
   const activeBox = activeFieldIndex !== null ? fields[activeFieldIndex] : null
   const isCancelled = doc?.status === 'CANCELLED'
 
-  // PARSER URL VIDEO (Menampung Format Objek Berjudul / Array String Biasa)
   let parsedVideoUrls = [];
   if (doc?.video_url) {
     try {
@@ -650,8 +654,12 @@ function App() {
             <div style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px', paddingRight: '8px' }}>
               {parsedVideoUrls.map((item, index) => {
                 const isObj = typeof item === 'object' && item !== null;
-                const url = isObj ? item.url : item;
+                let url = isObj ? item.url : item;
                 const title = isObj ? item.title : `Bagian Video ${index + 1}`;
+
+                if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+                  url = 'https://' + url;
+                }
 
                 let embedUrl = url;
                 if (url.includes('drive.google.com') && url.includes('/view')) {
@@ -1252,7 +1260,6 @@ function App() {
 
                             const currentTextValue = fieldInputs[f.id] || ''
 
-                            // LOGIKA UKURAN FONT DINAMIS UI 
                             const baseFontSizeUI = 26; 
                             const maxTextWidthUI = boxWidth - 12; 
                             
