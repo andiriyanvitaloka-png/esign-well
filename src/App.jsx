@@ -3,7 +3,7 @@ import './App.css'
 import { supabase } from './supabase'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
-import fontkit from '@pdf-lib/fontkit' // IMPORT MODUL FONTKIT BARU
+import fontkit from '@pdf-lib/fontkit' 
 import emailjs from '@emailjs/browser'
 
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -38,6 +38,8 @@ function App() {
 
   // State Form Upload Baru
   const [file, setFile] = useState(null)
+  const [videoFile, setVideoFile] = useState(null) // State untuk file video
+  const [showVideoModal, setShowVideoModal] = useState(false) // State untuk popup video
   const [signerList, setSignerList] = useState([
     { name: '', email: '' },
     { name: '', email: '' },
@@ -253,6 +255,7 @@ function App() {
 
     setIsUploading(true)
     try {
+      // 1. Upload PDF
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `documents/${fileName}`
@@ -269,9 +272,32 @@ function App() {
 
       const publicUrl = urlData.publicUrl
 
+      // 2. Upload Video (Jika ada)
+      let videoPublicUrl = null;
+      if (videoFile) {
+        const vExt = videoFile.name.split('.').pop()
+        const vName = `video_${Date.now()}.${vExt}`
+        const vPath = `videos/${vName}`
+
+        const { error: videoUploadError } = await supabase.storage
+          .from('pdf_documents')
+          .upload(vPath, videoFile)
+        
+        if (videoUploadError) {
+          alert("Gagal mengupload video, melanjutkan proses tanpa video. Pastikan pengaturan bucket storage mengizinkan file video.");
+          console.error(videoUploadError);
+        } else {
+          const { data: vUrlData } = supabase.storage
+            .from('pdf_documents')
+            .getPublicUrl(vPath)
+          videoPublicUrl = vUrlData.publicUrl
+        }
+      }
+
+      // 3. Simpan ke Database
       const { data: newDoc, error: docError } = await supabase
         .from('documents')
-        .insert([{ filename: file.name, file_url: publicUrl, status: 'IN_PROGRESS' }])
+        .insert([{ filename: file.name, file_url: publicUrl, video_url: videoPublicUrl, status: 'IN_PROGRESS' }])
         .select()
         .single()
 
@@ -297,6 +323,7 @@ function App() {
 
       alert("Berhasil mengunggah dokumen & mendaftarkan Signer baru! 🎉")
       setFile(null)
+      setVideoFile(null)
       setFieldInputs({})
       await fetchAllDocumentsList()
       await loadDocumentData(newDoc.id)
@@ -482,14 +509,12 @@ function App() {
 
       const pdfDoc = await PDFDocument.load(existingPdfBytes)
       
-      // REGISTER FONTKIT AGAR PDF-LIB BISA BACA FONT CUSTOM!
       pdfDoc.registerFontkit(fontkit);
       
       const helveticaRegular = await pdfDoc.embedFont(StandardFonts.Helvetica)
       
       let alexBrushFont;
       try {
-        // Menggunakan JSdelivr yang dijamin mendukung CORS headers
         const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/alexbrush/AlexBrush-Regular.ttf';
         const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
         alexBrushFont = await pdfDoc.embedFont(fontBytes);
@@ -530,11 +555,11 @@ function App() {
             
             if (textWidth > maxTextWidthPdf) {
                 finalFontSize = finalFontSize * (maxTextWidthPdf / textWidth);
-                textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); // Hitung ulang setelah dikecilkan
+                textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
             }
             if (finalFontSize > boxHeightPdf * 0.75) {
                 finalFontSize = boxHeightPdf * 0.75;
-                textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); // Hitung ulang
+                textWidth = currentFont.widthOfTextAtSize(textToDraw, finalFontSize); 
             }
         }
 
@@ -544,7 +569,6 @@ function App() {
 
         if (textToDraw) {
           if (isSig) {
-            // KHUSUS TANDA TANGAN: Rata Tengah dan TANPA maxWidth agar tidak terpotong turun baris!
             const xOffset = xPos + (boxWidthPdf - textWidth) / 2;
             pdfPage.drawText(textToDraw, {
               x: xOffset, 
@@ -552,10 +576,8 @@ function App() {
               size: finalFontSize,
               font: currentFont,
               color: rgb(0.1, 0.25, 0.7),
-              // NO MAX WIDTH HERE!
             })
           } else {
-            // Teks Biasa
             pdfPage.drawText(textToDraw, {
               x: xPos + (4 * scaleRatio), 
               y: yPosCenter, 
@@ -613,10 +635,52 @@ function App() {
   return (
     <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* IMPORT GOOGLE FONT ALEX BRUSH UNTUK UI */}
       <style>
         {`@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');`}
       </style>
+
+      {/* POPUP MODAL VIDEO */}
+      {showVideoModal && doc?.video_url && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '800px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <button 
+              onClick={() => setShowVideoModal(false)} 
+              style={{ position: 'absolute', top: '-12px', right: '-12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+            >
+              ✕
+            </button>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#111827' }}>Video Dokumentasi: {doc.filename}</h3>
+            <video src={doc.video_url} controls autoPlay style={{ width: '100%', borderRadius: '8px', backgroundColor: 'black', maxHeight: '70vh' }} />
+          </div>
+        </div>
+      )}
+
+      {/* TOMBOL FLOATING NONTON VIDEO DI BAWAH (BARU) */}
+      {doc?.video_url && mode !== 'upload' && mode !== 'dashboard' && (
+        <button 
+          onClick={() => setShowVideoModal(true)}
+          style={{ 
+            position: 'fixed', 
+            bottom: '40px', 
+            right: '40px', 
+            backgroundColor: '#8b5cf6', 
+            color: 'white', 
+            border: 'none', 
+            padding: '14px 24px', 
+            borderRadius: '50px', 
+            cursor: 'pointer', 
+            fontWeight: 'bold', 
+            fontSize: '15px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            boxShadow: '0 10px 25px -5px rgba(139, 92, 246, 0.5)',
+            zIndex: 100
+          }}
+        >
+          📹 Nonton Video
+        </button>
+      )}
 
       {/* SIDEBAR NAVIGATION */}
       {!isSignerOnlyView && (
@@ -731,7 +795,14 @@ function App() {
 
                     return (
                       <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
-                        <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', wordBreak: 'break-word' }}>{d.filename}</td>
+                        <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', wordBreak: 'break-word' }}>
+                          {d.filename}
+                          {d.video_url && (
+                            <span style={{ display: 'inline-block', marginLeft: '8px', fontSize: '11px', backgroundColor: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                              📹 Video
+                            </span>
+                          )}
+                        </td>
                         
                         <td style={{ padding: '16px', lineHeight: '1.5' }}>
                           {d.recipients && d.recipients.length > 0 ? (
@@ -878,14 +949,29 @@ function App() {
 
             <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>File PDF Dokumen:</label>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>File PDF Dokumen (Wajib):</label>
                 <div style={{ border: '1px dashed #cbd5e1', padding: '20px', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
                   <input 
                     type="file" 
                     accept="application/pdf" 
                     onChange={(e) => setFile(e.target.files[0])}
                     style={{ width: '100%', color: '#475569' }}
+                    required
                   />
+                </div>
+              </div>
+
+              {/* UPLOAD VIDEO */}
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>File Video Dokumentasi (Opsional):</label>
+                <div style={{ border: '1px dashed #cbd5e1', padding: '20px', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                  <input 
+                    type="file" 
+                    accept="video/mp4,video/x-m4v,video/*" 
+                    onChange={(e) => setVideoFile(e.target.files[0])}
+                    style={{ width: '100%', color: '#475569' }}
+                  />
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '8px 0 0 0' }}>Signer dapat memutar video ini saat akan melakukan tanda tangan.</p>
                 </div>
               </div>
 
@@ -950,6 +1036,7 @@ function App() {
           <>
             <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
+                {/* HEADER DIKEMBALIKAN KE BENTUK ASLI */}
                 <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>{doc.filename}</h2>
                 <p style={{ margin: '6px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
                   {isSignerOnlyView ? `Portal Penandatanganan untuk: ${activeSigner?.name}` : `Mode Aktif: ${mode === 'plotting' ? 'Pengaturan Posisi Kotak' : 'Portal Pengisian Dokumen'}`}
