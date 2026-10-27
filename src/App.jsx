@@ -27,19 +27,17 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
 
-  // Flag apakah pengguna membuka aplikasi via link email khusus
   const [isSignerOnlyView, setIsSignerOnlyView] = useState(false)
 
-  // Mode & UI States
   const [mode, setMode] = useState('dashboard')
-  const [filter, setFilter] = useState('All') // Filter untuk Dashboard
-  const [searchQuery, setSearchQuery] = useState('') // Fitur Search Baru
-  const [activeDropdown, setActiveDropdown] = useState(null) // State Dropdown
+  const [filter, setFilter] = useState('All') 
+  const [searchQuery, setSearchQuery] = useState('') 
+  const [activeDropdown, setActiveDropdown] = useState(null) 
 
-  // State Form Upload Baru
   const [file, setFile] = useState(null)
-  const [videoFile, setVideoFile] = useState(null) // State untuk file video
-  const [showVideoModal, setShowVideoModal] = useState(false) // State untuk popup video
+  // STATE DIUBAH UNTUK MENAMPUNG TEXT MULTIPLE LINK GOOGLE DRIVE
+  const [videoLinks, setVideoLinks] = useState('') 
+  const [showVideoModal, setShowVideoModal] = useState(false) 
   const [signerList, setSignerList] = useState([
     { name: '', email: '' },
     { name: '', email: '' },
@@ -51,20 +49,18 @@ function App() {
   const dragStartPos = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
-    // BACA PARAMETER DARI URL SAAT WEB PERTAMA KALI DIBUKA
     const queryParams = new URLSearchParams(window.location.search)
     const urlDocId = queryParams.get('docId')
     
     if (urlDocId) {
-      loadDocumentData(urlDocId) // Load dokumen spesifik dari link email
+      loadDocumentData(urlDocId) 
     } else {
-      loadDocumentData() // Load dokumen terakhir jika tidak ada link
+      loadDocumentData() 
     }
     
     fetchAllDocumentsList()
   }, [])
 
-  // AMBIL SEMUA DOKUMEN UNTUK DASHBOARD ADMIN
   async function fetchAllDocumentsList() {
     const { data: docsData } = await supabase
       .from('documents')
@@ -76,7 +72,6 @@ function App() {
     }
   }
 
-  // FUNGSI UNTUK MENGHAPUS DOKUMEN
   const handleDeleteDocument = async (docId, fileUrl) => {
     if (!window.confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
 
@@ -104,7 +99,6 @@ function App() {
     }
   }
 
-  // FUNGSI REMINDER EMAIL
   const handleSendReminder = async (d) => {
     const pendingSigner = d.recipients?.find(r => r.status === 'Mailed')
     if (!pendingSigner) {
@@ -118,7 +112,6 @@ function App() {
     alert(`Email pengingat berhasil dikirimkan ulang ke ${pendingSigner.name}! 🔔`)
   }
 
-  // FUNGSI CANCEL REQUEST E-SIGN
   const handleCancelRequest = async (docId) => {
     if (!window.confirm("Apakah Anda yakin ingin MEMBATALKAN seluruh permintaan tanda tangan untuk dokumen ini?")) return;
 
@@ -206,7 +199,6 @@ function App() {
     }
   }
 
-  // --- FUNGSI PENGIRIMAN EMAIL ---
   const sendSigningNotificationEmail = (signerName, signerEmail, documentName, docId) => {
     const directSigningLink = `${window.location.origin}/?mode=signing&email=${encodeURIComponent(signerEmail)}&docId=${docId}`
 
@@ -272,32 +264,20 @@ function App() {
 
       const publicUrl = urlData.publicUrl
 
-      // 2. Upload Video (Jika ada)
-      let videoPublicUrl = null;
-      if (videoFile) {
-        const vExt = videoFile.name.split('.').pop()
-        const vName = `video_${Date.now()}.${vExt}`
-        const vPath = `videos/${vName}`
-
-        const { error: videoUploadError } = await supabase.storage
-          .from('pdf_documents')
-          .upload(vPath, videoFile)
-        
-        if (videoUploadError) {
-          alert("Gagal mengupload video, melanjutkan proses tanpa video. Pastikan pengaturan bucket storage mengizinkan file video.");
-          console.error(videoUploadError);
-        } else {
-          const { data: vUrlData } = supabase.storage
-            .from('pdf_documents')
-            .getPublicUrl(vPath)
-          videoPublicUrl = vUrlData.publicUrl
+      // 2. Olah Link Video Google Drive (Tidak ada upload file video lagi = Bebas Error 520)
+      let finalVideoUrlString = null;
+      if (videoLinks.trim() !== '') {
+        // Pisahkan teks berdasarkan baris baru (enter), bersihkan spasi, hilangkan yang kosong
+        const linksArray = videoLinks.split('\n').map(link => link.trim()).filter(link => link !== '');
+        if (linksArray.length > 0) {
+          finalVideoUrlString = JSON.stringify(linksArray);
         }
       }
 
       // 3. Simpan ke Database
       const { data: newDoc, error: docError } = await supabase
         .from('documents')
-        .insert([{ filename: file.name, file_url: publicUrl, video_url: videoPublicUrl, status: 'IN_PROGRESS' }])
+        .insert([{ filename: file.name, file_url: publicUrl, video_url: finalVideoUrlString, status: 'IN_PROGRESS' }])
         .select()
         .single()
 
@@ -323,7 +303,7 @@ function App() {
 
       alert("Berhasil mengunggah dokumen & mendaftarkan Signer baru! 🎉")
       setFile(null)
-      setVideoFile(null)
+      setVideoLinks('') // Reset form link video
       setFieldInputs({})
       await fetchAllDocumentsList()
       await loadDocumentData(newDoc.id)
@@ -501,12 +481,11 @@ function App() {
     }
   }
 
-  // --- DOWNLOAD PDF FINAL (DIPERBAIKI 100% UNTUK FONT & WORD-WRAP) ---
+  // --- DOWNLOAD PDF FINAL ---
   const handleDownloadFinalPdf = async () => {
     setIsDownloading(true)
     try {
       const existingPdfBytes = await fetch(doc.file_url).then(res => res.arrayBuffer())
-
       const pdfDoc = await PDFDocument.load(existingPdfBytes)
       
       pdfDoc.registerFontkit(fontkit);
@@ -632,6 +611,19 @@ function App() {
   const activeBox = activeFieldIndex !== null ? fields[activeFieldIndex] : null
   const isCancelled = doc?.status === 'CANCELLED'
 
+  // PARSER URL VIDEO UNTUK MULTIPLE LINKS
+  let parsedVideoUrls = [];
+  if (doc?.video_url) {
+    try {
+      parsedVideoUrls = JSON.parse(doc.video_url);
+      if (!Array.isArray(parsedVideoUrls)) {
+        parsedVideoUrls = [doc.video_url]; 
+      }
+    } catch (e) {
+      parsedVideoUrls = [doc.video_url]; 
+    }
+  }
+
   return (
     <div className="app-container" onMouseUp={handleMouseUp} style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: "'Inter', sans-serif" }}>
       
@@ -639,24 +631,53 @@ function App() {
         {`@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');`}
       </style>
 
-      {/* POPUP MODAL VIDEO */}
-      {showVideoModal && doc?.video_url && (
+      {/* POPUP MODAL VIDEO MENGGUNAKAN LINK GOOGLE DRIVE */}
+      {showVideoModal && parsedVideoUrls.length > 0 && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '800px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
             <button 
               onClick={() => setShowVideoModal(false)} 
-              style={{ position: 'absolute', top: '-12px', right: '-12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+              style={{ position: 'absolute', top: '-12px', right: '-12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 10 }}
             >
               ✕
             </button>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#111827' }}>Video Dokumentasi: {doc.filename}</h3>
-            <video src={doc.video_url} controls autoPlay style={{ width: '100%', borderRadius: '8px', backgroundColor: 'black', maxHeight: '70vh' }} />
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#111827' }}>Tautan Video Dokumentasi</h3>
+            
+            <div style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px', paddingRight: '8px' }}>
+              {parsedVideoUrls.map((url, index) => {
+                // Auto-konversi link Google Drive agar bisa diputar langsung di iframe popup
+                let embedUrl = url;
+                if (url.includes('drive.google.com') && url.includes('/view')) {
+                  embedUrl = url.replace(/\/view(\?.*)?$/, '/preview');
+                }
+
+                return (
+                  <div key={index} style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '14px', color: '#475569' }}>Bagian Video {index + 1}</h4>
+                      <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none', fontWeight: 'bold' }}>
+                        Buka di Tab Baru ↗
+                      </a>
+                    </div>
+                    {/* Render Iframe untuk Google Drive atau link normal jika buka Gdrive */}
+                    {url.includes('drive.google.com') ? (
+                      <iframe src={embedUrl} width="100%" height="400" allow="autoplay" allowFullScreen style={{ borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0' }}></iframe>
+                    ) : (
+                      <div style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e2e8f0', borderRadius: '8px', fontSize: '13px', color: '#64748b' }}>
+                        <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: '600' }}>Klik di sini untuk mengunjungi tautan video</a>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* TOMBOL FLOATING NONTON VIDEO DI BAWAH (BARU) */}
-      {doc?.video_url && mode !== 'upload' && mode !== 'dashboard' && (
+      {/* TOMBOL FLOATING NONTON VIDEO DI BAWAH */}
+      {parsedVideoUrls.length > 0 && mode !== 'upload' && mode !== 'dashboard' && (
         <button 
           onClick={() => setShowVideoModal(true)}
           style={{ 
@@ -678,7 +699,7 @@ function App() {
             zIndex: 100
           }}
         >
-          📹 Nonton Video
+          📹 Nonton Tautan Video
         </button>
       )}
 
@@ -799,7 +820,7 @@ function App() {
                           {d.filename}
                           {d.video_url && (
                             <span style={{ display: 'inline-block', marginLeft: '8px', fontSize: '11px', backgroundColor: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                              📹 Video
+                              🔗 Tautan Video
                             </span>
                           )}
                         </td>
@@ -961,17 +982,17 @@ function App() {
                 </div>
               </div>
 
-              {/* UPLOAD VIDEO */}
+              {/* UBAH UPLOAD FILE MENJADI FORM TEKS LINK GOOGLE DRIVE (BEBAS ERROR 520) */}
               <div>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>File Video Dokumentasi (Opsional):</label>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Tautan Video Dokumentasi Google Drive (Opsional):</label>
                 <div style={{ border: '1px dashed #cbd5e1', padding: '20px', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
-                  <input 
-                    type="file" 
-                    accept="video/mp4,video/x-m4v,video/*" 
-                    onChange={(e) => setVideoFile(e.target.files[0])}
-                    style={{ width: '100%', color: '#475569' }}
+                  <textarea 
+                    placeholder="Paste link Google Drive di sini...&#10;(Pisahkan dengan tombol Enter ke baris baru jika lebih dari 1 link)"
+                    value={videoLinks}
+                    onChange={(e) => setVideoLinks(e.target.value)}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', resize: 'vertical', minHeight: '80px', boxSizing: 'border-box' }}
                   />
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '8px 0 0 0' }}>Signer dapat memutar video ini saat akan melakukan tanda tangan.</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '8px 0 0 0' }}>Signer dapat langsung memutar video melalui tautan ini tanpa takut gagal upload server.</p>
                 </div>
               </div>
 
@@ -1036,7 +1057,6 @@ function App() {
           <>
             <div style={{ backgroundColor: 'white', padding: '20px 32px', borderRadius: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                {/* HEADER DIKEMBALIKAN KE BENTUK ASLI */}
                 <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>{doc.filename}</h2>
                 <p style={{ margin: '6px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
                   {isSignerOnlyView ? `Portal Penandatanganan untuk: ${activeSigner?.name}` : `Mode Aktif: ${mode === 'plotting' ? 'Pengaturan Posisi Kotak' : 'Portal Pengisian Dokumen'}`}
