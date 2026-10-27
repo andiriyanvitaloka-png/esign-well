@@ -35,7 +35,6 @@ function App() {
   const [activeDropdown, setActiveDropdown] = useState(null) 
 
   const [file, setFile] = useState(null)
-  // STATE DIUBAH UNTUK MENAMPUNG TEXT MULTIPLE LINK GOOGLE DRIVE
   const [videoLinks, setVideoLinks] = useState('') 
   const [showVideoModal, setShowVideoModal] = useState(false) 
   const [signerList, setSignerList] = useState([
@@ -247,7 +246,6 @@ function App() {
 
     setIsUploading(true)
     try {
-      // 1. Upload PDF
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `documents/${fileName}`
@@ -264,17 +262,23 @@ function App() {
 
       const publicUrl = urlData.publicUrl
 
-      // 2. Olah Link Video Google Drive (Tidak ada upload file video lagi = Bebas Error 520)
       let finalVideoUrlString = null;
       if (videoLinks.trim() !== '') {
-        // Pisahkan teks berdasarkan baris baru (enter), bersihkan spasi, hilangkan yang kosong
-        const linksArray = videoLinks.split('\n').map(link => link.trim()).filter(link => link !== '');
+        const linksArray = videoLinks.split('\n').map(line => line.trim()).filter(line => line !== '');
+        
         if (linksArray.length > 0) {
-          finalVideoUrlString = JSON.stringify(linksArray);
+          const formattedLinks = linksArray.map((line, index) => {
+            if (line.includes('|')) {
+              const parts = line.split('|');
+              return { title: parts[0].trim(), url: parts[1].trim() };
+            } else {
+              return { title: `Bagian Video ${index + 1}`, url: line };
+            }
+          });
+          finalVideoUrlString = JSON.stringify(formattedLinks);
         }
       }
 
-      // 3. Simpan ke Database
       const { data: newDoc, error: docError } = await supabase
         .from('documents')
         .insert([{ filename: file.name, file_url: publicUrl, video_url: finalVideoUrlString, status: 'IN_PROGRESS' }])
@@ -303,7 +307,7 @@ function App() {
 
       alert("Berhasil mengunggah dokumen & mendaftarkan Signer baru! 🎉")
       setFile(null)
-      setVideoLinks('') // Reset form link video
+      setVideoLinks('') 
       setFieldInputs({})
       await fetchAllDocumentsList()
       await loadDocumentData(newDoc.id)
@@ -611,16 +615,16 @@ function App() {
   const activeBox = activeFieldIndex !== null ? fields[activeFieldIndex] : null
   const isCancelled = doc?.status === 'CANCELLED'
 
-  // PARSER URL VIDEO UNTUK MULTIPLE LINKS
+  // PARSER URL VIDEO (Menampung Format Objek Berjudul / Array String Biasa)
   let parsedVideoUrls = [];
   if (doc?.video_url) {
     try {
       parsedVideoUrls = JSON.parse(doc.video_url);
       if (!Array.isArray(parsedVideoUrls)) {
-        parsedVideoUrls = [doc.video_url]; 
+        parsedVideoUrls = [{ title: 'Bagian Video 1', url: doc.video_url }]; 
       }
     } catch (e) {
-      parsedVideoUrls = [doc.video_url]; 
+      parsedVideoUrls = [{ title: 'Bagian Video 1', url: doc.video_url }]; 
     }
   }
 
@@ -631,7 +635,7 @@ function App() {
         {`@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');`}
       </style>
 
-      {/* POPUP MODAL VIDEO MENGGUNAKAN LINK GOOGLE DRIVE */}
+      {/* POPUP MODAL VIDEO */}
       {showVideoModal && parsedVideoUrls.length > 0 && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '800px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
@@ -644,8 +648,11 @@ function App() {
             <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#111827' }}>Tautan Video Dokumentasi</h3>
             
             <div style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px', paddingRight: '8px' }}>
-              {parsedVideoUrls.map((url, index) => {
-                // Auto-konversi link Google Drive agar bisa diputar langsung di iframe popup
+              {parsedVideoUrls.map((item, index) => {
+                const isObj = typeof item === 'object' && item !== null;
+                const url = isObj ? item.url : item;
+                const title = isObj ? item.title : `Bagian Video ${index + 1}`;
+
                 let embedUrl = url;
                 if (url.includes('drive.google.com') && url.includes('/view')) {
                   embedUrl = url.replace(/\/view(\?.*)?$/, '/preview');
@@ -654,12 +661,11 @@ function App() {
                 return (
                   <div key={index} style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <h4 style={{ margin: 0, fontSize: '14px', color: '#475569' }}>Bagian Video {index + 1}</h4>
+                      <h4 style={{ margin: 0, fontSize: '14px', color: '#475569' }}>{title}</h4>
                       <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none', fontWeight: 'bold' }}>
                         Buka di Tab Baru ↗
                       </a>
                     </div>
-                    {/* Render Iframe untuk Google Drive atau link normal jika buka Gdrive */}
                     {url.includes('drive.google.com') ? (
                       <iframe src={embedUrl} width="100%" height="400" allow="autoplay" allowFullScreen style={{ borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0' }}></iframe>
                     ) : (
@@ -982,17 +988,16 @@ function App() {
                 </div>
               </div>
 
-              {/* UBAH UPLOAD FILE MENJADI FORM TEKS LINK GOOGLE DRIVE (BEBAS ERROR 520) */}
               <div>
                 <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Tautan Video Dokumentasi Google Drive (Opsional):</label>
                 <div style={{ border: '1px dashed #cbd5e1', padding: '20px', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
                   <textarea 
-                    placeholder="Paste link Google Drive di sini...&#10;(Pisahkan dengan tombol Enter ke baris baru jika lebih dari 1 link)"
+                    placeholder="Contoh Format:&#10;Proses Mesin | https://drive.google.com/file/...&#10;Hasil Akhir | https://drive.google.com/file/..."
                     value={videoLinks}
                     onChange={(e) => setVideoLinks(e.target.value)}
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', resize: 'vertical', minHeight: '80px', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', resize: 'vertical', minHeight: '90px', boxSizing: 'border-box' }}
                   />
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '8px 0 0 0' }}>Signer dapat langsung memutar video melalui tautan ini tanpa takut gagal upload server.</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '8px 0 0 0' }}>Gunakan tanda <b>|</b> (garis lurus) untuk memisahkan Judul Video dan Link Google Drive. Pisahkan dengan Enter untuk video berikutnya.</p>
                 </div>
               </div>
 
